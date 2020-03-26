@@ -1,5 +1,4 @@
-# iO-IROS-2020
-### ***(insideOut)* Submission for IEEE IROS 2020:**
+# insideOut
 ## Bio-inspired Foundation for Joint Angle Estimation from Non-Collocated Sensors in Tendon-Driven Robotics
 ### Daniel A. Hagen, Ali Marjaninejad, & Francisco J. Valero-Cuevas
 
@@ -9,7 +8,7 @@ Estimates of limb posture are critical for the control of robotic systems. This 
 Please follow the instructions <a href='https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html'>here</a> in order to install MATLAB engine API for python. Once that is done, you can clone into this repository and install the remaining required packages by copy and pasting the following code into the terminal.
 
 ```bash
-git clone https://github.com/danhagen/iO-IROS-2020.git && cd iO-IROS-2020/src
+git clone https://github.com/danhagen/insideOut.git && cd insideOut/src
 pip install -r requirements.txt
 pip install .
 ```
@@ -39,7 +38,7 @@ In order to generate motor babbling data, we use the class `motor_babbling_1DOF2
 To build, train, and test these ANNs, use `build_NN_1DOF2DOA` and `test_NN_1DOF2DOA`.
 
 ## Run Multiple Trials and Plot All Data
-To run the entire experiment, run `run run_multiple_trials_with_different_babbling_durations.py`. This will sweep across babbling durations (30,45,...,360) seconds, train multiple ANNs (*default*:50 trials), and plot average performances. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
+To run the entire experiment, run `run run_multiple_trials_with_different_babbling_durations.py`. This will sweep across babbling durations from 1-30 seconds, train multiple ANNs (*default*:50 trials), and plot average performances. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
 
 ## Animate a Single Trial (All 4 ANNs Over 4 Different Movements)
 To visualize the performance of ANNs and their ability to generalize to other movement tasks, use the function `animate_sample_trials.py`. This will create an animation of how well each ANN did at predicting joint angle and will sweep across 4 different movements (joint angle and stiffness are either sinusoidal or point-to-point). 

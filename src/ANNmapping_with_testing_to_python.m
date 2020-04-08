@@ -121,6 +121,7 @@ function [output] = ANNmapping_with_testing_to_python(path,layers,epochLimit)
 
         %% NN - Train
         net=feedforwardnet(double(layers));
+        net.trainParam.showWindow = 0;   % hide training window
         net.trainParam.epochs = double(epochLimit);
         [net, tr] = train(...
             net,...

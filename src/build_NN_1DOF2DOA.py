@@ -305,9 +305,7 @@ class neural_network:
             )
             babblingTrial.save_data(X, path=self.trialPath + "babblingTrial_outputData.mat")
             save_params_as_MAT(self.totalParams, path=self.trialPath)
-            # movement=movementType[0];print(movement+"\n");print("MATLAB:\n");print(groupNames[0] + ': ' + str(180 / np.pi * experimentalData[groupNames[0]][movement]['experimentRMSE']));print(groupNames[1] + ': ' + str(180 / np.pi * experimentalData[groupNames[1]][movement]['experimentRMSE']));print(groupNames[2] + ': ' + str(180 / np.pi * experimentalData[groupNames[2]][movement]['experimentRMSE']));print(groupNames[3] + ': ' + str(180 / np.pi * experimentalData[groupNames[3]][movement]['experimentRMSE']));print("\nTensorFlow:\n");print(groupNames[0] + ': ' + str(180 / np.pi * history[groupNames[0]]['experiment'][movement]['experimentRMSE']));print(groupNames[1] + ': ' + str(180 / np.pi * history[groupNames[1]]['experiment'][movement]['experimentRMSE']));print(groupNames[2] + ':' + str(180/np.pi*history[groupNames[2]]['experiment'][movement]['experimentRMSE']));print(groupNames[3] + ': ' + str(180/np.pi*history[groupNames[3]]['experiment'][movement]['experimentRMSE']))
 
-            # MATLAB ANN func
             startTime = time.time()
             eng = matlab.engine.start_matlab()
             ANNOutput = eng.ANNmapping_with_testing_to_python(

@@ -146,6 +146,44 @@ class plant_pendulum_1DOF2DOF:
         )
 
         return([x1o,0,x35o[0,0],0,x35o[1,0],0])
+    def return_X_o_given_s_o(self,x1o,s_o,guess):
+        """
+        Returns the initial state X_o where the positions of the motors depends on the initial position of the pendulum and the amount of torque on the motors. This assumes we are at (or near) equilibrium at the start of a simulation to get us close to the actual initial state (and therefore minimize the large transitions at the start).
+
+        U_o should be an array with 2 elements and x1o should be a number given in radians between 0 and 2 pi.
+        """
+        if abs(x1o-np.pi)>1e-3:
+            def equations(p):
+                x3, x5 = p
+                eqn1 = (self.rj**2)*self.k_spr*self.b_spr*(
+                    np.exp(self.b_spr*(self.rm*x3 - self.rj*x1o))
+                        * ((self.rm*x3 - self.rj*x1o)>=0)
+                        + np.exp(self.b_spr*(self.rm*x5 + self.rj*x1o))
+                        * ((self.rm*x5 + self.rj*x1o)>=0)
+                        ) - s_o
+                eqn2 = (
+                    -self.Lcm*self.mj*gr*np.sin(x1o) # gravitational torque
+                    + self.rj*self.k_spr * (
+                        (np.exp(self.b_spr*(self.rm*x3 - self.rj*x1o))-1)
+                            * ((self.rm*x3 - self.rj*x1o)>=0)
+                        - (np.exp(self.b_spr*(self.rm*x5 + self.rj*x1o))-1)
+                            * ((self.rm*x5 + self.rj*x1o)>=0)
+                    )
+                )
+                return (eqn1,eqn2)
+            x3o,x5o = sp.optimize.fsolve(equations,guess)
+        else:
+            x3o = (
+                self.rj*x1o/self.rm
+                + (1/(self.rm*self.b_spr))
+                * np.log(
+                    s_o / (2*self.rj**2*self.k_spr*self.b_spr)
+                )
+            )
+            x5o = x3o - 2*self.rj*x1o/self.rm
+        # print("f2 output: " + str(self.f2_func([x1o,0,x3o,0,x5o,0])))
+        # print("hs output: " + str(self.hs([x1o,0,x3o,0,x5o,0])))
+        return([x1o,0,x3o,0,x5o,0])
 
     def C(self,X):
         """
@@ -620,8 +658,8 @@ class plant_pendulum_1DOF2DOF:
         )
 
     def plot_desired_trajectory_distribution_and_power_spectrum(
-        self,
-        trajectory
+            self,
+            trajectory
         ):
 
         fig1, (ax1a,ax1b) = plt.subplots(2,1,sharex=True,figsize=(5,7))
@@ -752,335 +790,6 @@ class plant_pendulum_1DOF2DOF:
         )
         ax3a.set_yticklabels(["{:.1f}%".format(100*el) for el in ax3a.get_yticks()])
         ax3b.set_yticklabels(["{:.1f}%".format(100*el) for el in ax3b.get_yticks()])
-
-    def generate_desired_trajectory_SIN_SIN(
-            self,
-            delay=0.3,
-            freqRange=[1,5],
-            angleRange=None,
-            stiffnessRange=None
-        ):
-        assert (type(freqRange)==list
-                and len(freqRange)==2
-                and freqRange[1]>freqRange[0]), \
-            "freqRange must be a list of length 2 in ascending order."
-        if angleRange is not None:
-            assert (type(angleRange)==list
-                    and len(angleRange)==2
-                    and angleRange[1]>angleRange[0]), \
-                "angleRange must be a list of length 2 in ascending order."
-        else:
-            angleRange = [
-                self.jointAngleBounds["LB"],
-                self.jointAngleBounds["UB"]
-            ]
-        if stiffnessRange is not None:
-            assert (type(stiffnessRange)==list
-                    and len(stiffnessRange)==2
-                    and stiffnessRange[1]>stiffnessRange[0]), \
-                "stiffnessRange must be a list of length 2 in ascending order."
-        else:
-            stiffnessRange = [
-                self.jointStiffnessBounds["LB"],
-                self.jointStiffnessBounds["UB"]
-            ]
-
-
-        startValue = np.array([[
-            self.jointAngleMidPoint,
-            self.jointStiffnessBounds["LB"]
-        ]])
-
-        # Sweep across frequencies, 10 cycles per frequency.
-        frequencyValues = np.arange(freqRange[0],freqRange[1]+1e-1,1)
-        cycleDurations = [10/freq for freq in frequencyValues]
-        cycleDurations.insert(0,delay)
-        tempTime = np.arange(0,sum(cycleDurations)+1e-7,self.dt)
-        stepChanges = np.cumsum([int(el/self.dt) for el in cycleDurations])
-        delays = np.ones(np.shape(tempTime[stepChanges[0]:]))
-        frequencies = np.ones(np.shape(tempTime[stepChanges[0]:]))
-        for i in range(len(frequencyValues)):
-            start = stepChanges[i] - stepChanges[0]
-            if i==len(frequencyValues)-1:
-                frequencies[start:] *= frequencyValues[i]
-                delays[start:] *= stepChanges[i]*self.dt
-            else:
-                end = stepChanges[i+1] - stepChanges[0]
-                frequencies[start:end] *= frequencyValues[i]
-                delays[start:end] *= stepChanges[i]*self.dt
-
-        ##  Sinusoidal Joint Angle
-        angleAmplitude = (angleRange[1] - angleRange[0])/2
-        angleOffset = (angleRange[1] + angleRange[0])/2
-        sinusoidal_angle_func = lambda t,freq,delay:(
-            angleAmplitude*np.sin(
-                2*np.pi*freq
-                * (t-delay)
-            )
-            + angleOffset
-        )
-
-        ##  Sinusoidal Joint Stiffness
-        stiffnessAmplitude = (stiffnessRange[1] - stiffnessRange[0])/2
-        stiffnessOffset = (stiffnessRange[1] + stiffnessRange[0])/2
-        sinusoidal_stiffness_func = lambda t,freq,delay:(
-            stiffnessOffset
-            - stiffnessAmplitude*np.cos(
-                2*np.pi*(2*freq)
-                * (t-delay)
-            )
-        )
-
-        trajectory = startValue.T*np.ones((2,len(tempTime)))
-        trajectory[0,int(delay/self.dt):] = np.array(list(map(
-            sinusoidal_angle_func,
-            tempTime[int(delay/self.dt):],
-            frequencies,
-            delays
-        )))
-        trajectory[1,int(delay/self.dt):] = np.array(list(map(
-            sinusoidal_stiffness_func,
-            tempTime[int(delay/self.dt):],
-            frequencies,
-            delays
-        )))
-        return(trajectory)
-
-    def generate_desired_trajectory_SIN_STEP(
-            self,
-            delay=0.3, # s
-            stepRange=[0.2,1],# 1-5 Hz
-            fixedStep=False,
-            freq=1, # Hz
-            angleRange=None
-        ):
-
-        if angleRange is not None:
-            assert (type(angleRange)==list
-                    and len(angleRange)==2
-                    and angleRange[1]>angleRange[0]), \
-                "angleRange must be a list of length 2 in ascending order."
-        else:
-            angleRange = [
-                self.jointAngleBounds["LB"],
-                self.jointAngleBounds["UB"]
-            ]
-
-        assert (type(stepRange)==list
-                and len(stepRange)==2
-                and stepRange[1]>stepRange[0]), \
-            "stepRange must be a list of length 2 in ascending order."
-
-        assert type(fixedStep)==bool, "fixedStep must be either True or False (default). If true, the point-to-point step size will be equal to the period of the sinusoid."
-
-        startValue = np.array([[
-            self.jointAngleMidPoint,
-            self.jointStiffnessMidPoint
-        ]])
-
-        minStep = stepRange[0]/2 # default: 200 ms / 2 = 100 ms
-        maxStep = stepRange[1]/2 # default: 1000 ms / 2 = 500 ms
-
-        startValue = np.array([[
-            self.jointAngleMidPoint,
-            self.jointStiffnessMidPoint
-        ]])
-
-        trajectory = startValue.T*np.ones((2,len(self.time)))
-
-        ##  Sinusoidal Joint Angle
-        angleAmplitude = (angleRange[1] - angleRange[0])/2
-        angleOffset = (angleRange[1] + angleRange[0])/2
-        sinusoidal_angle_func = lambda t:(
-            angleOffset
-            + angleAmplitude*np.sin(
-                2*np.pi*freq
-                * (t-delay)
-            )
-        )
-        trajectory[0,int(delay/self.dt):] = np.array(list(map(
-            sinusoidal_angle_func,
-            self.time[int(delay/self.dt):]
-        )))
-
-        ##  Point-to-Point Joint Stiffness
-        allDone=False
-        i=int(delay/self.dt)
-        while allDone == False:
-            if fixedStep==True:
-                nextStepLength = int(1/freq/self.dt)
-            else: # nextStepLength is random within a range of frequencies
-                nextStepLength = int(
-                    np.random.uniform(minStep,maxStep)/self.dt
-                )
-            if nextStepLength<len(self.time)-i-1:
-                trajectory[1,i:i+nextStepLength] = [
-                    np.random.uniform(
-                        self.jointStiffnessBounds["LB"],
-                        self.jointStiffnessBounds["UB"]
-                    )
-                ]*nextStepLength
-                i+=nextStepLength
-            else:
-                trajectory[1,i:] = [
-                    np.random.uniform(
-                        self.jointStiffnessBounds["LB"],
-                        self.jointStiffnessBounds["UB"]
-                    )
-                ]*(len(self.time)-i)
-                allDone=True
-        filterLength = int((1/10)/self.dt/2)
-        b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
-        a=1
-        trajectory[1,:] = signal.filtfilt(b, a, trajectory[1,:])
-
-        return(trajectory)
-
-    def generate_desired_trajectory_STEP_SIN(
-            self,
-            delay=0.3,
-            freq=1,
-            stiffnessRange=None
-        ):
-
-        if stiffnessRange is not None:
-            assert (type(stiffnessRange)==list
-                    and len(stiffnessRange)==2
-                    and stiffnessRange[1]>stiffnessRange[0]), \
-                "stiffnessRange must be a list of length 2 in ascending order."
-        else:
-            stiffnessRange = [
-                self.jointStiffnessBounds["LB"],
-                self.jointStiffnessBounds["UB"]
-            ]
-
-        startValue = np.array([[
-            self.jointAngleMidPoint,
-            self.jointStiffnessBounds["LB"]
-        ]])
-
-        trajectory = startValue.T*np.ones((2,len(self.time)))
-
-        ## Point-to-Point Joint Angle
-        # Step duration is equal to the period of the sinusoid for fixed joint angles while modulating joint stiffess
-        stepLength = int(freq/self.dt)
-        allDone=False
-        i=int(delay/self.dt)
-        while allDone == False:
-            if i<len(self.time)-stepLength-1:
-                trajectory[0,i:i+stepLength] = [
-                    np.random.uniform(
-                        self.jointAngleBounds["LB"],
-                        self.jointAngleBounds["UB"]
-                    )
-                ]*stepLength
-                i+=stepLength
-            else:
-                trajectory[0,i:] = [
-                    np.random.uniform(
-                        self.jointAngleBounds["LB"],
-                        self.jointAngleBounds["UB"]
-                    )
-                ]*(len(self.time)-i)
-                allDone=True
-        filterLength = int((1/10)/self.dt/2)
-        b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
-        a=1
-        trajectory[0,:] = signal.filtfilt(b, a, trajectory[0,:])
-
-        ## Sinusoidal Joint Stiffness
-        stiffnessAmplitude = (stiffnessRange[1] - stiffnessRange[0])/2
-        stiffnessOffset = (stiffnessRange[1] + stiffnessRange[0])/2
-        sinusoidal_stiffness_func = lambda t:(
-            stiffnessOffset
-            - stiffnessAmplitude*np.cos(
-                2*np.pi*freq
-                * (t-delay)
-            )
-        )
-        trajectory[1,int(delay/self.dt):] = np.array(list(map(
-            sinusoidal_stiffness_func,
-            self.time[int(delay/self.dt):]
-        )))
-
-        return(trajectory)
-
-    def generate_desired_trajectory_STEP_STEP(
-            self,
-            delay=0.3,
-            stepRange=[0.2,1],
-            fixedStep=None
-        ):
-
-        assert (type(stepRange)==list
-                and len(stepRange)==2
-                and stepRange[1]>stepRange[0]), \
-            "stepRange must be a list of length 2 in ascending order."
-
-        if fixedStep is not None:
-            is_number(fixedStep,"fixedStep",notes="If not None, fixedStep should be a number (in seconds).")
-            assert abs((fixedStep*1000)%(self.dt*1000))<1e-5, "fixedStep should be a multiple of the timestep (self.dt = " + str(self.dt) + ")."
-
-        minStep = stepRange[0]/2 # default: 200 ms / 2 = 100 ms
-        maxStep = stepRange[1]/2 # default: 1000 ms / 2 = 500 ms
-
-        minValue = [
-            self.jointAngleBounds["LB"],
-            self.jointStiffnessBounds["LB"]
-        ]
-        maxValue = [
-            self.jointAngleBounds["UB"],
-            self.jointStiffnessBounds["UB"]
-        ]
-        startValue = np.array([[
-            self.jointAngleMidPoint,
-            self.jointStiffnessMidPoint
-        ]])
-
-        ## Point-to-Point for both joint angle and stiffness
-        trajectory = startValue.T*np.ones((2,len(self.time)))
-        allDone=False
-        i=int(delay/self.dt)
-        while allDone == False:
-            if fixedStep is None:
-                nextStepLength = int(
-                    np.random.uniform(minStep,maxStep)/self.dt
-                )
-            else: # nextStepLength is fixed
-                nextStepLength = int(fixedStep/self.dt)
-            if nextStepLength<len(self.time)-i-1:
-                trajectory[0,i:i+nextStepLength] = [
-                    np.random.uniform(
-                        minValue[0],
-                        maxValue[0]
-                    )
-                ]*nextStepLength
-                trajectory[1,i:i+nextStepLength] = [
-                    np.random.uniform(
-                        minValue[1],
-                        maxValue[1]
-                    )
-                ]*nextStepLength
-                i+=nextStepLength
-            else:
-                trajectory[0,i:] = [
-                    np.random.uniform(
-                        minValue[0],
-                        maxValue[0]
-                    )
-                ]*(len(self.time)-i)
-                trajectory[1,i:] = [
-                    np.random.uniform(
-                        minValue[1],
-                        maxValue[1]
-                    )
-                ]*(len(self.time)-i)
-                allDone=True
-        filterLength = int((1/10)/plant.dt/2)
-        b=np.ones(filterLength,)/(filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with filter length (10 Hz^{-1} / dt) / 2
-        a=1
-        trajectory = signal.filtfilt(b, a, trajectory)
-        return(trajectory)
 
     def generate_desired_trajectory_STEPS_2(
             self,
@@ -1351,16 +1060,16 @@ class plant_pendulum_1DOF2DOF:
     def forward_simulation_FL(self,X_o,X1d,Sd):
         assert len(X_o)==6, "X_o must have 6 elements, not " + str(len(X_o)) + "."
         dt = self.time[1]-self.time[0]
-        U = np.zeros((2,len(self.time)-1),dtype=np.float64)
-        X = np.zeros((6,len(self.time)),dtype=np.float64)
-        X_measured = np.zeros((6,len(self.time)),dtype=np.float64)
-        Y = np.zeros((2,len(self.time)),dtype=np.float64)
+        U = np.zeros((2,np.shape(X1d)[1]-1),dtype=np.float64)
+        X = np.zeros((6,np.shape(X1d)[1]),dtype=np.float64)
+        X_measured = np.zeros((6,np.shape(X1d)[1]),dtype=np.float64)
+        Y = np.zeros((2,np.shape(X1d)[1]),dtype=np.float64)
         X[:,0] = X_o
         Y[:,0] = self.h(X[:,0])
         self.update_state_variables(X_o)
-        statusbar=dsb(0,len(self.time)-1,title="Forward Simulation (FBL)")
+        statusbar=dsb(0,np.shape(X1d)[1]-1,title="Forward Simulation (FBL)")
         self.desiredOutput = np.array([X1d[0,:],Sd[0,:]])
-        for i in range(len(self.time)-1):
+        for i in range(np.shape(X1d)[1]-1):
             if i>0:
                 X_measured[0,i] = X[0,i]
                 X_measured[1,i] = (X[0,i]-X[0,i-1])/self.dt
@@ -1504,11 +1213,11 @@ class plant_pendulum_1DOF2DOF:
         """
         import numpy as np
         import matplotlib.pyplot as plt
-
-        assert (np.shape(X)[0] in [6,8]) \
-                    and (np.shape(X)[1] == len(self.time)) \
-                        and (str(type(X)) == "<class 'numpy.ndarray'>"), \
-                "X must be a (6,N) or (8,N) numpy.ndarray, where N is the length of t."
+        tempTime = np.array(range(np.shape(X)[1]))*self.dt
+        # assert (np.shape(X)[0] in [6,8]) \
+        #             and (np.shape(X)[1] == len(self.time)) \
+        #                 and (str(type(X)) == "<class 'numpy.ndarray'>"), \
+        #         "X must be a (6,N) or (8,N) numpy.ndarray, where N is the length of t."
 
 
         Return = kwargs.get("Return",False)
@@ -1559,7 +1268,7 @@ class plant_pendulum_1DOF2DOF:
             for j in range(NumStates):
                 axes[RowNumber[j],ColumnNumber[j]].spines['right'].set_visible(False)
                 axes[RowNumber[j],ColumnNumber[j]].spines['top'].set_visible(False)
-                axes[RowNumber[j],ColumnNumber[j]].plot(self.time,X[j,:])
+                axes[RowNumber[j],ColumnNumber[j]].plot(tempTime,X[j,:])
                 if not(RowNumber[j] == RowNumber[-1] and ColumnNumber[j]==0):
                     plt.setp(axes[RowNumber[j],ColumnNumber[j]].get_xticklabels(), visible=False)
                     # axes[RowNumber[j],ColumnNumber[j]].set_xticklabels(\
@@ -1574,9 +1283,9 @@ class plant_pendulum_1DOF2DOF:
             axes = Figure[1]
             for i in range(NumStates):
                 if NumRows != 1:
-                    axes[RowNumber[i],ColumnNumber[i]].plot(self.time,X[i,:])
+                    axes[RowNumber[i],ColumnNumber[i]].plot(tempTime,X[i,:])
                 else:
-                    axes[ColumnNumber[i]].plot(self.time,X[i,:])
+                    axes[ColumnNumber[i]].plot(tempTime,X[i,:])
         X[0,:] += 180 # returning to original frame
         X[:6,:] = np.pi*X[:6,:]/180 # returning to radians
         if Return == True:
@@ -1645,7 +1354,7 @@ class plant_pendulum_1DOF2DOF:
         ax2.yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(xmax=1))
         X[0,:] += np.pi # shifting back
 
-    def save_data(self,X,U,additionalDict=None,path=None):
+    def save_data(self,X,U,additionalDict=None,filePath=None):
         fT1 = np.array(list(map(self.tendon_1_FL_func,X.T)))
         fT2 = np.array(list(map(self.tendon_2_FL_func,X.T)))
 
@@ -1675,9 +1384,10 @@ class plant_pendulum_1DOF2DOF:
         if additionalDict is not None:
             outputData.update(additionalDict)
 
-        if path is not None:
-            assert type(path)==str, "path must be a str."
-            sio.savemat(path+"outputData.mat",outputData)
+        if filePath is not None:
+            assert type(filePath)==str, "filePath must be a str."
+            assert filePath[-4:]==".mat", "filePath must end in .mat"
+            sio.savemat(filePath,outputData)
         else:
             sio.savemat("outputData.mat",outputData)
 

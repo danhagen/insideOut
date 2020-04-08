@@ -659,11 +659,12 @@ class plant_pendulum_1DOF2DOF:
 
     def plot_desired_trajectory_distribution_and_power_spectrum(
             self,
-            trajectory
+            trajectory,
+            cutoff=3
         ):
 
         fig1, (ax1a,ax1b) = plt.subplots(2,1,sharex=True,figsize=(5,7))
-        time = np.array(list(range(len(trajectory[0,:]))))*self.dt
+        time = np.array(list(range(len(trajectory[0,:int(cutoff/self.dt)]))))*self.dt
         ax1a.plot(
             [time[0],time[-1]],
             [(180/np.pi)*self.jointAngleBounds["LB"]]*2,
@@ -710,12 +711,12 @@ class plant_pendulum_1DOF2DOF:
 
         ax1a.plot(
             time,
-            (180/np.pi)*trajectory[0,:],
+            (180/np.pi)*trajectory[0,:int(cutoff/self.dt)],
             "C0"
         )
         ax1b.plot(
             time,
-            trajectory[1,:],
+            trajectory[1,:int(cutoff/self.dt)],
             "C1"
         )
 

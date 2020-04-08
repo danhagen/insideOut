@@ -114,6 +114,7 @@ def plot_babbling_duration_vs_average_performance(metric,directory=None):
             # )
         if i==1:
             axs[i].legend(groupNames,loc='upper right')
+
 def plot_number_of_nodes_vs_average_performance(metric,directory=None):
     labels = [
         "(Sinusoidal Angle / Sinusoidal Stiffness)",
@@ -200,15 +201,15 @@ def plot_number_of_nodes_vs_average_performance(metric,directory=None):
         if i==1:
             axs[i].legend(groupNames,loc='upper right')
 
-def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
-    X1d = np.zeros((5,len(plant.time)))
+def generate_and_save_sensory_data(plant,x1d,sd,X_o,savePath=None,returnOutput=False):
+    X1d = np.zeros((5,len(x1d)))
     X1d[0,:] = LP_filt(100,x1d)
     X1d[1,:] = np.gradient(X1d[0,:],plant.dt)
     X1d[2,:] = np.gradient(X1d[1,:],plant.dt)
     X1d[3,:] = np.gradient(X1d[2,:],plant.dt)
     X1d[4,:] = np.gradient(X1d[3,:],plant.dt)
 
-    Sd = np.zeros((3,len(plant.time)))
+    Sd = np.zeros((3,len(sd)))
     Sd[0,:] = LP_filt(100,sd)
     Sd[1,:] = np.gradient(Sd[0,:],plant.dt)
     Sd[2,:] = np.gradient(Sd[1,:],plant.dt)
@@ -217,7 +218,10 @@ def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
 
     additionalDict = {"X1d" : x1d, "Sd" : sd}
 
-    plant.save_data(X,U,additionalDict=additionalDict,path=savePath)
+    plant.save_data(X,U,additionalDict=additionalDict,filePath=savePath)
+
+    if returnOutput is True:
+        return(X,U)
 
 def plot_experimental_data(experimentalData,dt,returnFigs=True):
     # Sin Angle/Sin Stiffness
@@ -240,9 +244,9 @@ def plot_experimental_data(experimentalData,dt,returnFigs=True):
     top_axs = [ax1a,ax2a,ax3a,ax4a]
     bot_axs = [ax1b,ax2b,ax3b,ax4b]
     # subkeys = list(experimentalData['all'].keys())
-    # timeArray = dt*np.array(list(range(
-    #     len(experimentalData['angleSin_stiffSin']['all']['rawError'])
-    # )))
+    timeArray = dt*np.array(list(range(
+        len(experimentalData['angleSin_stiffSin']['all']['rawError'])
+    )))
     for i in range(len(movementTypes)):
         top_axs[i].set_ylabel("Joint Angle (deg.)")
         top_axs[i].spines["right"].set_visible(False)
@@ -1630,12 +1634,11 @@ if __name__=="__main__":
                 ANNParams["Number of Nodes"] = args.nodes
 
                 ### Generate plant
-                tempSimulationDuration = 30
+                tempSimulationDuration = 300
                 plantParams["Simulation Duration"] = tempSimulationDuration
                 plant = plant_pendulum_1DOF2DOF(plantParams)
-                X_o = plant.return_X_o(np.pi,[0,0])
                 passProbability = 0.0005
-
+                
                 allDone = False
                 count = 0
                 while allDone==False:
@@ -1643,59 +1646,155 @@ if __name__=="__main__":
                     basePath = "experimental_trials/"
 
                     print("Angle Step / Stiffness Step")
-                    filePath = (basePath + "angleStep_stiffStep_")
-                    if path.exists(filePath+"outputData.mat"):
+                    filePath = f"{basePath}angleStep_stiffStep_outputData.mat"
+                    if path.exists(filePath):
                         print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
                     else:
                         [x1d,sd] = plant.generate_desired_trajectory_STEPS(
                             passProbability,'both'
                         )
+                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
                         try:
-                            generate_and_save_sensory_data(plant,x1d,sd,savePath=filePath)
+                            X,_ = generate_and_save_sensory_data(
+                                plant,x1d,sd,X_o,
+                                savePath=filePath,
+                                returnOutput=True
+                            )
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            TEMPfig1 = plant.plot_states(
+                                X,
+                                InputString="Angle Step / Stiffness Step",
+                                Return=True
+                            )
+                            TEMPfig2 = plant.plot_states(
+                                X[:,:int(3/plant.dt)],
+                                InputString="Angle Step / Stiffness Step",
+                                Return=True
+                            )
+                            plant.plot_joint_angle_power_spectrum_and_distribution(X)
+                            save_figures(
+                                "visualizations/",
+                                "step_step",
+                                {},
+                                subFolderName="FBL_trajectories/"
+                            )
+                            plt.close('all')
                         except:
                             pass
 
                     ### Generate Testing DATA (Angle Step, Stiffness Sinusoid)
 
                     print("Angle Step / Stiffness Sinusoid")
-                    filePath = (basePath + "angleStep_stiffSin_")
-                    if path.exists(filePath+"outputData.mat"):
+                    filePath = f"{basePath}angleStep_stiffSin_outputData.mat"
+                    if path.exists(filePath):
                         print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
                     else:
                         x1d = plant.generate_desired_trajectory_STEPS(passProbability,'angle')
                         sd = plant.generate_desired_trajectory_SINUSOIDAL('stiffness')
+                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
                         try:
-                            generate_and_save_sensory_data(plant,x1d,sd,savePath=filePath)
+                            X,_ = generate_and_save_sensory_data(
+                                plant,x1d,sd,X_o,
+                                savePath=filePath,
+                                returnOutput=True
+                            )
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            TEMPfig1 = plant.plot_states(
+                                X,
+                                InputString="Angle Step / Stiffness Sinusoidal",
+                                Return=True
+                            )
+                            TEMPfig2 = plant.plot_states(
+                                X[:,:int(3/plant.dt)],
+                                InputString="Angle Step / Stiffness Sinusoidal",
+                                Return=True
+                            )
+                            plant.plot_joint_angle_power_spectrum_and_distribution(X)
+                            save_figures(
+                                "visualizations/",
+                                "step_sin",
+                                {},
+                                subFolderName="FBL_trajectories/"
+                            )
+                            plt.close('all')
                         except:
                             pass
 
                     ### Generate Testing DATA (Angle Sinusoid, Stiffness Step)
 
                     print("Angle Sinusoid / Stiffness Step")
-                    filePath = (basePath + "angleSin_stiffStep_")
-                    if path.exists(filePath+"outputData.mat"):
+                    filePath = f"{basePath}angleSin_stiffStep_outputData.mat"
+                    if path.exists(filePath):
                         print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
                     else:
                         x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')
                         sd = plant.generate_desired_trajectory_STEPS(
                             passProbability,'stiffness'
                         )
+                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
                         try:
-                            generate_and_save_sensory_data(plant,x1d,sd,savePath=filePath)
+                            X,_ = generate_and_save_sensory_data(
+                                plant,x1d,sd,X_o,
+                                savePath=filePath,
+                                returnOutput=True
+                            )
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            TEMPfig1 = plant.plot_states(
+                                X,
+                                InputString="Angle Sinusoidal / Stiffness Step",
+                                Return=True
+                            )
+                            TEMPfig2 = plant.plot_states(
+                                X[:,:int(3/plant.dt)],
+                                InputString="Angle Sinusoidal / Stiffness Step",
+                                Return=True
+                            )
+                            plant.plot_joint_angle_power_spectrum_and_distribution(X)
+                            save_figures(
+                                "visualizations/",
+                                "sin_step",
+                                {},
+                                subFolderName="FBL_trajectories/"
+                            )
+                            plt.close('all')
                         except:
                             pass
 
                     ### Generate Testing DATA (Angle Sinusoid, Stiffness Sinusoid)
 
-                    print("Angle Step / Stiffness Step")
-                    filePath = (basePath + "angleSin_stiffSin_")
-                    if path.exists(filePath+"outputData.mat"):
+                    print("Angle Sinusoid / Stiffness Sinusoid")
+                    filePath = f"{basePath}angleSin_stiffSin_outputData.mat"
+                    if path.exists(filePath):
                         print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
                     else:
                         x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')
                         sd = plant.generate_desired_trajectory_SINUSOIDAL('stiffness')
+                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
                         try:
-                            generate_and_save_sensory_data(plant,x1d,sd,savePath=filePath)
+                            X,_ = generate_and_save_sensory_data(
+                                plant,x1d,sd,X_o,
+                                savePath=filePath,
+                                returnOutput=True
+                            )
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            TEMPfig1 = plant.plot_states(
+                                X,
+                                InputString="Angle Sinusoidal / Stiffness Sinusoidal",
+                                Return=True
+                            )
+                            TEMPfig2 = plant.plot_states(
+                                X[:,:int(3/plant.dt)],
+                                InputString="Angle Sinusoidal / Stiffness Sinusoidal",
+                                Return=True
+                            )
+                            plant.plot_joint_angle_power_spectrum_and_distribution(X)
+                            save_figures(
+                                "visualizations/",
+                                "sin_sin",
+                                {},
+                                subFolderName="FBL_trajectories/"
+                            )
+                            plt.close('all')
                         except:
                             pass
 
@@ -1723,12 +1822,6 @@ if __name__=="__main__":
                 # figs = plot_experimental_data(experimentalData,returnFigs=True)
 
                 # SAVE EXPERIMENTAL DATA TO TRIAL FOLDER
-                formattedData = {
-                    "all" : {},
-                    "bio" : {},
-                    "kinapprox" : {},
-                    "allmotor" : {}
-                }
                 formattedData = {}
                 for key in experimentalData["all"]:
                     formattedData[key] = {}
@@ -1781,3 +1874,19 @@ if __name__=="__main__":
                 trialRunTime = "(+%d:%02d:%02d)" % (hour, minutes, seconds)
                 trialStartTime = time.time()
                 print('Run Time: ' + runTime + " " + trialRunTime + "\n")
+
+            if path.exists("slack_functions.py"):
+                from slack_functions import *
+                message = (
+                    '\n'
+                    + 'Total Run Time: ' + runTime + '\n\n'
+                    + '```params = {\n'
+                    + '\t"Number of Trials" : ' + str(args.trials) + ',\n'
+                    + '\t"Babbling Duration" : ' + str(args.dur) + ', # in seconds\n'
+                    + '\t"Babbling Type" : "' + args.babType + '"\n'
+                    + '}```'
+                )
+                progress_report_to_slack(
+                    __file__,
+                    message
+                )

@@ -101,6 +101,7 @@ class motor_babbling_1DOF2DOA:
         result = np.fft.ifft(f).real
         # result = result/max([result.max(),-result.min()]))
         return(result)
+
     def plot_signals_power_spectrum_and_amplitude_distribution(self):
         assert hasattr(self,"babblingSignals"), "run generate_step_babbling_input or generate_continuous_babbling_input before plotting the power spectrum."
 
@@ -222,17 +223,6 @@ class motor_babbling_1DOF2DOA:
                     u2_rand
                 ]*stepSize
 
-        ### Filter the offset signals
-        # nyq = 0.5 / self.plant.dt
-        # low = self.lowCutoffFrequency/nyq
-        # high = self.highCutoffFrequency/nyq
-        # b, a = signal.butter(self.filterOrder, high, 'low')
-        # self.babblingSignals = signal.filtfilt(b, a, self.babblingSignals.T).T
-        # # b, a = signal.butter(self.filterOrder, [low, high], btype='band')
-        # # self.babblingSignals = signal.filtfilt(
-        # #     b,a,
-        # #     self.babblingSignals.T
-        # # ).T
         b = np.ones(self.filterLength,)/(self.filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
         a=1
         self.babblingSignals = signal.filtfilt(
@@ -267,10 +257,7 @@ class motor_babbling_1DOF2DOA:
             ],
             axis=1
         )
-        # self.babblingNoise = (
-        #     (self.babblingNoise-self.babblingNoise.min())
-        #     / (self.babblingNoise.max() - self.babblingNoise.min())
-        # )
+
         self.stepDuration = 3/self.highCutoffFrequency # 300 ms
         indices = [
             int(np.round(el/self.plant.dt))
@@ -373,8 +360,6 @@ class motor_babbling_1DOF2DOA:
                 + (self.noiseAmplitude*(self.babblingNoise.T)).T
             )
 
-
-
         ### Bound the signals
         for i in range(numberOfSamples):
             if self.babblingSignals[i,0]<=self.inputMinimum:
@@ -387,7 +372,7 @@ class motor_babbling_1DOF2DOA:
             elif self.babblingSignals[i,1]>=self.inputMaximum:
                 self.babblingSignals[i,1]=self.inputMaximum
 
-    def save_data(self,X,path=None):
+    def save_data(self,X,filePath=None):
         assert hasattr(self,"babblingSignals"), "No babbling signals have been generated, please run self.generate_babbling_signals() before running this function."
 
         fT1 = np.array(list(map(self.plant.tendon_1_FL_func,X.T)))
@@ -415,9 +400,10 @@ class motor_babbling_1DOF2DOA:
             "dfT2" : np.gradient(fT2,self.plant.dt),
             "d2fT2" : np.gradient(np.gradient(fT2,self.plant.dt),self.plant.dt)
         }
-        if path is not None:
-            assert type(path)==str, "path must be a str."
-            sio.savemat(path+"outputData.mat",outputData)
+        if filePath is not None:
+            assert type(filePath)==str, "filePath must be a str."
+            assert filePath[-4:]=='.mat', "filePath must end in .mat"
+            sio.savemat(filePath,outputData)
         else:
             sio.savemat("outputData.mat",outputData)
 
@@ -479,7 +465,7 @@ class motor_babbling_1DOF2DOA:
                     save_params_as_MAT(self.totalParams,path=trialPath)
 
                 if saveData==True:
-                    self.save_data(X,path=trialPath)
+                    self.save_data(X,filePath=trialPath)
 
                 if returnData==True:
                     output["time"] = self.plant.time

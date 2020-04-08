@@ -46,7 +46,7 @@ def generate_and_save_sensory_data(plant,x1d,sd,savePath=None):
         "X" : X
     }
 
-    plant.save_data(X,U,additionalDict=additionalDict,path=savePath)
+    plant.save_data(X,U,additionalDict=additionalDict,filePath=savePath)
 
 def plot_experimental_data(experimentalData,returnFigs=True):
     # Sin Angle/Sin Stiffness
@@ -870,8 +870,8 @@ if __name__=="__main__":
         basePath = "experimental_trials/"
 
         print("Angle Step / Stiffness Step")
-        filePath = (basePath + "angleStep_stiffStep_")
-        if path.exists(filePath+"outputData.mat"):
+        filePath = (basePath + "angleStep_stiffStep_outputData.mat")
+        if path.exists(filePath):
             print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
         else:
             [x1d,sd] = plant.generate_desired_trajectory_STEPS(
@@ -885,8 +885,8 @@ if __name__=="__main__":
         ### Generate Testing DATA (Angle Step, Stiffness Sinusoid)
 
         print("Angle Step / Stiffness Sinusoid")
-        filePath = (basePath + "angleStep_stiffSin_")
-        if path.exists(filePath+"outputData.mat"):
+        filePath = (basePath + "angleStep_stiffSin_outputData.mat")
+        if path.exists(filePath):
             print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
         else:
             x1d = plant.generate_desired_trajectory_STEPS(passProbability,'angle')
@@ -899,8 +899,8 @@ if __name__=="__main__":
         ### Generate Testing DATA (Angle Sinusoid, Stiffness Step)
 
         print("Angle Sinusoid / Stiffness Step")
-        filePath = (basePath + "angleSin_stiffStep_")
-        if path.exists(filePath+"outputData.mat"):
+        filePath = (basePath + "angleSin_stiffStep_outputData.mat")
+        if path.exists(filePath):
             print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
         else:
             x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')
@@ -915,8 +915,8 @@ if __name__=="__main__":
         ### Generate Testing DATA (Angle Sinusoid, Stiffness Sinusoid)
 
         print("Angle Step / Stiffness Step")
-        filePath = (basePath + "angleSin_stiffSin_")
-        if path.exists(filePath+"outputData.mat"):
+        filePath = (basePath + "angleSin_stiffSin_outputData.mat")
+        if path.exists(filePath):
             print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
         else:
             x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')

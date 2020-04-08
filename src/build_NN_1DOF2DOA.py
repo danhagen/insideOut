@@ -244,7 +244,7 @@ class neural_network:
             returnPath=True,
             saveAsPDF=False
         )
-        babblingTrial.save_data(X, path=self.trialPath + "babblingTrial_outputData.mat")
+        babblingTrial.save_data(X, filePath=self.trialPath + "babblingTrial_outputData.mat")
         save_params_as_MAT(self.totalParams, path=self.trialPath)
 
         # MATLAB ANN func
@@ -303,7 +303,7 @@ class neural_network:
                 returnPath=True,
                 saveAsPDF=False
             )
-            babblingTrial.save_data(X, path=self.trialPath + "babblingTrial_outputData.mat")
+            babblingTrial.save_data(X, filePath=self.trialPath + "babblingTrial_outputData.mat")
             save_params_as_MAT(self.totalParams, path=self.trialPath)
 
             startTime = time.time()
@@ -349,7 +349,7 @@ class neural_network:
         with open(self.trialPath + "trainingData.pkl", 'wb') as handle:
             pickle.dump(self.ANNOutput, handle, protocol=pickle.HIGHEST_PROTOCOL)
         if returnBabblingData is True:
-            return experimentalData, self.ANNOutput["babbling"]
+            return experimentalData, babblingOutput
         else:
             return experimentalData
 

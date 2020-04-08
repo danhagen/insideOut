@@ -1638,7 +1638,7 @@ if __name__=="__main__":
                 plantParams["Simulation Duration"] = tempSimulationDuration
                 plant = plant_pendulum_1DOF2DOF(plantParams)
                 passProbability = 0.0005
-                
+
                 allDone = False
                 count = 0
                 while allDone==False:
@@ -1653,21 +1653,28 @@ if __name__=="__main__":
                         [x1d,sd] = plant.generate_desired_trajectory_STEPS(
                             passProbability,'both'
                         )
-                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
+                        X_o = plant.return_X_o_given_s_o(
+                            x1d[0],sd[0],[0,0]
+                        )
                         try:
                             X,_ = generate_and_save_sensory_data(
                                 plant,x1d,sd,X_o,
                                 savePath=filePath,
                                 returnOutput=True
                             )
-                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(
+                                np.array([
+                                    x1d[int(3/plant.dt):int(13/plant.dt)+1],
+                                    sd[int(3/plant.dt):int(13/plant.dt)+1]]
+                                )
+                            )
                             TEMPfig1 = plant.plot_states(
                                 X,
                                 InputString="Angle Step / Stiffness Step",
                                 Return=True
                             )
                             TEMPfig2 = plant.plot_states(
-                                X[:,:int(3/plant.dt)],
+                                X[:,int(3/plant.dt):int(13/plant.dt)+1],
                                 InputString="Angle Step / Stiffness Step",
                                 Return=True
                             )
@@ -1689,23 +1696,30 @@ if __name__=="__main__":
                     if path.exists(filePath):
                         print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
                     else:
-                        x1d = plant.generate_desired_trajectory_STEPS(passProbability,'angle')
-                        sd = plant.generate_desired_trajectory_SINUSOIDAL('stiffness')
-                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
+                        x1d = plant.generate_desired_trajectory_STEPS(passProbability,'angle')[0,:]
+                        sd = plant.generate_desired_trajectory_SINUSOIDAL('stiffness')[0,:]
+                        X_o = plant.return_X_o_given_s_o(
+                            x1d[0],sd[0],[0,0]
+                        )
                         try:
                             X,_ = generate_and_save_sensory_data(
                                 plant,x1d,sd,X_o,
                                 savePath=filePath,
                                 returnOutput=True
                             )
-                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(
+                                np.array([
+                                    x1d[int(3/plant.dt):int(13/plant.dt)+1],
+                                    sd[int(3/plant.dt):int(13/plant.dt)+1]]
+                                )
+                            )
                             TEMPfig1 = plant.plot_states(
                                 X,
                                 InputString="Angle Step / Stiffness Sinusoidal",
                                 Return=True
                             )
                             TEMPfig2 = plant.plot_states(
-                                X[:,:int(3/plant.dt)],
+                                X[:,int(3/plant.dt):int(13/plant.dt)+1],
                                 InputString="Angle Step / Stiffness Sinusoidal",
                                 Return=True
                             )
@@ -1727,25 +1741,32 @@ if __name__=="__main__":
                     if path.exists(filePath):
                         print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
                     else:
-                        x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')
+                        x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')[0,:]
                         sd = plant.generate_desired_trajectory_STEPS(
                             passProbability,'stiffness'
+                        )[0,:]
+                        X_o = plant.return_X_o_given_s_o(
+                            x1d[0],sd[0],[0,0]
                         )
-                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
                         try:
                             X,_ = generate_and_save_sensory_data(
                                 plant,x1d,sd,X_o,
                                 savePath=filePath,
                                 returnOutput=True
                             )
-                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(
+                                np.array([
+                                    x1d[int(3/plant.dt):int(13/plant.dt)+1],
+                                    sd[int(3/plant.dt):int(13/plant.dt)+1]]
+                                )
+                            )
                             TEMPfig1 = plant.plot_states(
                                 X,
                                 InputString="Angle Sinusoidal / Stiffness Step",
                                 Return=True
                             )
                             TEMPfig2 = plant.plot_states(
-                                X[:,:int(3/plant.dt)],
+                                X[:,int(3/plant.dt):int(13/plant.dt)+1],
                                 InputString="Angle Sinusoidal / Stiffness Step",
                                 Return=True
                             )
@@ -1767,23 +1788,30 @@ if __name__=="__main__":
                     if path.exists(filePath):
                         print("ALREADY COMPLETED!!! (DELETE TO RUN AGAIN...)")
                     else:
-                        x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')
-                        sd = plant.generate_desired_trajectory_SINUSOIDAL('stiffness')
-                        X_o = plant.return_X_o_given_s_o(x1d[0],sd[0],[0,0])
+                        x1d = plant.generate_desired_trajectory_SINUSOIDAL('angle')[0,:]
+                        sd = plant.generate_desired_trajectory_SINUSOIDAL('stiffness')[0,:]
+                        X_o = plant.return_X_o_given_s_o(
+                            x1d[0],sd[0],[0,0]
+                        )
                         try:
                             X,_ = generate_and_save_sensory_data(
                                 plant,x1d,sd,X_o,
                                 savePath=filePath,
                                 returnOutput=True
                             )
-                            plant.plot_desired_trajectory_distribution_and_power_spectrum(np.array([x1d,sd]))
+                            plant.plot_desired_trajectory_distribution_and_power_spectrum(
+                                np.array([
+                                    x1d[int(3/plant.dt):int(13/plant.dt)+1],
+                                    sd[int(3/plant.dt):int(13/plant.dt)+1]]
+                                )
+                            )
                             TEMPfig1 = plant.plot_states(
                                 X,
                                 InputString="Angle Sinusoidal / Stiffness Sinusoidal",
                                 Return=True
                             )
                             TEMPfig2 = plant.plot_states(
-                                X[:,:int(3/plant.dt)],
+                                X[:,int(3/plant.dt):int(13/plant.dt)+1],
                                 InputString="Angle Sinusoidal / Stiffness Sinusoidal",
                                 Return=True
                             )
@@ -1883,7 +1911,7 @@ if __name__=="__main__":
                     + '```params = {\n'
                     + '\t"Number of Trials" : ' + str(args.trials) + ',\n'
                     + '\t"Babbling Duration" : ' + str(args.dur) + ', # in seconds\n'
-                    + '\t"Babbling Type" : "' + args.babType + '"\n'
+                    + '\t"Babbling Type" : "<OUTDATED_VERSION>"\n'
                     + '}```'
                 )
                 progress_report_to_slack(

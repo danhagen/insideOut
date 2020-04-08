@@ -458,7 +458,7 @@ class motor_babbling_1DOF2DOA:
         ## plot (and save) figures
         output = {}
         if plot==True:
-            self.plant.plot_states(X)
+            self.plant.plot_states(X,Return=True)
 
             self.plant.plot_joint_angle_power_spectrum_and_distribution(X)
 

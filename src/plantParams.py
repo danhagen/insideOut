@@ -4,7 +4,7 @@ import numpy as np
 
 plantParams = {
     "Joint Inertia" : 1.15e-2, # kg⋅m²
-    "Joint Damping" : 0.01, # N⋅s⋅m⁻¹
+    "Joint Damping" : 0.0001, # N⋅s⋅m⁻¹
     "Joint Mass" : 0.541, # kg
     "Joint Moment Arm" : 0.05, # m
     "Link Center of Mass" : 0.085, # m
@@ -21,7 +21,7 @@ plantParams = {
     "Position Gains" : {
         0 : 3162.3,
         1 : 1101.9,
-        2 : 192.0,
+        2 : 192.0, #192.0,
         3 : 19.6
     },
     "Stiffness Gains" : {
@@ -32,7 +32,7 @@ plantParams = {
         "LB" : np.pi/2,
         "UB" : 3*np.pi/2
     },
-    "Maximum Joint Stiffness" : 100,
+    "Maximum Joint Stiffness" : 50,
     "Boundary Friction Weight" : 3,
     "Boundary Friction Gain" : 1
 }

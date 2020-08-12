@@ -17,9 +17,9 @@ babblingParams = {
     "Low Cutoff Frequency" : 1,
     "High Cutoff Frequency" : 10,
     "Buttersworth Filter Order" : 9,
-    "Babbling Type" : 'step', # ['continuous','step']
+    "Babbling Type" : 'continuous', # ['continuous','step']
     "Force Cocontraction" : True,
-    "Cocontraction Standard Deviation" : 1
+    "Cocontraction Standard Deviation" : 0.5 # NOTE: This value will highly influence the quality of the babbling as the plant will only "flip" when the inputs (and tendon tensions) differ enough to produce a switch between agonist and antagonist. When motor damping is increased, this value will need to be scaled in order to produce changes large enough to cause net torques large enough to flip. Returning to original value of 0.5 as that was the original value for b_m 0.00462. This means we need to return the motor damping to */ 2. Leaving tendon stiffness at the larger values.
 }
 
 class motor_babbling_1DOF2DOA:
@@ -173,10 +173,13 @@ class motor_babbling_1DOF2DOA:
         sns.distplot(self.babblingSignals[:,0],hist=True,color='r',ax=ax3a)
         sns.distplot(self.babblingSignals[:,1],hist=True,color='r',ax=ax3b)
 
-    def generate_continuous_babbling_input(self):
+    def generate_continuous_babbling_input(self,**kwargs):
         """
         Returns a babbling signal for 2 channels that either steps to some level of torque inputs (inside the bounds) or is zero.
         """
+        returnPiecewiseSteps = kwargs.get("returnPiecewiseSteps",False)
+        assert type(returnPiecewiseSteps)==bool, "returnPiecewiseSteps must be either true or false (default)."
+
         np.random.seed(self.seed)
         numberOfSamples = len(self.plant.time)-1
         self.babblingSignals = np.zeros((numberOfSamples,2))
@@ -190,6 +193,8 @@ class motor_babbling_1DOF2DOA:
                 self.stepDuration
             )
         ]
+        u1=[]
+        u2=[]
         indices[-1]=int(len(self.plant.time)-1)
         if self.cocontraction==False:
             for i in range(len(indices)-1):
@@ -215,7 +220,8 @@ class motor_babbling_1DOF2DOA:
                     u2_rand=self.inputMinimum
                 elif u2_rand>=self.inputMaximum:
                     u2_rand=self.inputMaximum
-
+                u1.append(u1_rand)
+                u2.append(u2_rand)
                 self.babblingSignals[indices[i]:indices[i+1],0] = [
                     u1_rand
                 ]*stepSize
@@ -223,13 +229,64 @@ class motor_babbling_1DOF2DOA:
                     u2_rand
                 ]*stepSize
 
+        # newBabblingSignals = np.zeros(np.shape(self.babblingSignals))
+        # tempTime = self.plant.dt*np.array(list(range(np.shape(self.babblingSignals)[0])))
+        # start=0
+        # Ui = np.array([[0,0]]).T
+        # coeffs = [10,-15,6]
+        # # NOTE: by making the entire step equal to 1 second, you can create piecewise functions that do not have to deal with inbetween steps (i.e., the filterDuration is not a multiple of step.dt). Therefore "start" will always be a multiple of self.dt
+        # for i in range(len(u1)):
+        #     Uf = np.array([[
+        #         u1[i],u2[i]
+        #     ]]).T
+        #     end = start+self.filterLength
+        #     transition_func = lambda t: (
+        #         Ui + (Uf-Ui)*(
+        #             coeffs[0]*((t-self.plant.dt*start)/(self.plant.dt*self.filterLength))**3
+        #             + coeffs[1]*((t-self.plant.dt*start)/(self.plant.dt*self.filterLength))**4
+        #             + coeffs[2]*((t-self.plant.dt*start)/(self.plant.dt*self.filterLength))**5
+        #         )
+        #     )
+        #     newBabblingSignals[start:start+self.filterLength,:] = np.array(list(map(
+        #         transition_func,
+        #         tempTime[start:start+self.filterLength]
+        #     )))[:,:,0]
+        #     start=end
+        #     Ui=Uf
+        # newBabblingSignals[end:,:]=newBabblingSignals[end-1,:]*np.ones(np.shape(newBabblingSignals[end:,:]))
         b = np.ones(self.filterLength,)/(self.filterLength) #Finite Impulse Response (FIR) Moving Average (MA) filter with one second filter length
+        # fig,(ax1,ax2)=plt.subplots(2,1,sharex=True)
+        # ax1.plot(tempTime,self.babblingSignals[:,0],'k',ls='--')
+        #
+        # ax1.set_xlabel("Time (s)")
+        # ax1.set_ylabel("Motor 1 Input (Nm)")
+        # ax1.spines["top"].set_visible(False)
+        # ax1.spines["right"].set_visible(False)
+        #
+        # ax2.plot(tempTime,self.babblingSignals[:,1],'k',ls='--')
+        # ax2.set_ylabel("Motor 2 Input (Nm)")
+        # plt.setp(ax2.get_xticklabels(),visible=False)
+        # ax2.spines["top"].set_visible(False)
+        # ax2.spines["right"].set_visible(False)
         a=1
+        if returnPiecewiseSteps==True:
+            piecewiseSteps = self.babblingSignals
+
         self.babblingSignals = signal.filtfilt(
             b,a,
             self.babblingSignals.T
         ).T
 
+        # ax1.plot(tempTime,self.babblingSignals[:,0],'0.70',lw=3)
+        # ax1.plot(tempTime,newBabblingSignals[:,0],'C0')
+        # ax2.plot(tempTime,self.babblingSignals[:,1],'0.70',lw=3)
+        # ax2.plot(tempTime,newBabblingSignals[:,1],'C1')
+        # newBabblingSignals = signal.filtfilt(
+        #     b,a,
+        #     newBabblingSignals.T
+        # ).T
+        # # TEMP:
+        # self.babblingSignals=newBabblingSignals
         ### Bound the signals
         for i in range(numberOfSamples):
             if self.babblingSignals[i,0]<=self.inputMinimum:
@@ -241,6 +298,9 @@ class motor_babbling_1DOF2DOA:
                 self.babblingSignals[i,1]=self.inputMinimum
             elif self.babblingSignals[i,1]>=self.inputMaximum:
                 self.babblingSignals[i,1]=self.inputMaximum
+
+        if returnPiecewiseSteps==True:
+            return(piecewiseSteps)
 
     def generate_step_babbling_input(self):
         """
@@ -426,27 +486,57 @@ class motor_babbling_1DOF2DOA:
         if saveFigures==True:
             assert plot==True, "No figures will be generated. Please select plot=True."
 
-        ## Generate babbling input
-        if self.babblingType=='continuous':
-            self.generate_continuous_babbling_input()
-        else: #self.babblingType=='step'
-            self.generate_step_babbling_input()
+        poorBabbling = True
+        count=0
+        while poorBabbling:
 
-        ## running the babbling data through the plant
-        X_o = self.plant.return_X_o(x1o,self.babblingSignals[0,:])
+            ## Generate babbling input
+            if self.babblingType=='continuous':
+                self.generate_continuous_babbling_input()
+            else: #self.babblingType=='step'
+                self.generate_step_babbling_input()
 
-        X,U,_ = self.plant.forward_simulation(
-            X_o,
-            U=self.babblingSignals.T,
-            addTitle="Motor Babbling"
-        ) # need the transpose for the shapes to align (DAH)
+            ## running the babbling data through the plant
+            X_o = self.plant.return_X_o(x1o,self.babblingSignals[0,:])
 
+            X,U,_ = self.plant.forward_simulation(
+                X_o,
+                U=self.babblingSignals.T,
+                addTitle="Motor Babbling"
+            ) # need the transpose for the shapes to align (DAH)
+
+            tendonDeformation1 = np.array(
+                [-self.plant.rj,0,self.plant.rm,0,0,0])@X
+            tendonDeformation2 = np.array(
+                [self.plant.rj,0,0,0,self.plant.rm,0])@X
+            minDeformation = np.array([
+                tendonDeformation1,
+                tendonDeformation2
+            ]).min()
+            if minDeformation<-0.02:
+                print("Poor Babbling! Large Negative Tendon Deformations. Try Again")
+                count+=1
+                assert count<100,"count exceeded (negative tendon deformation)."
+            elif (
+                    abs(
+                        X[0,:].min()
+                        - self.plant.jointAngleBounds['LB']
+                    ) <= 5*(np.pi/180)
+                    and abs(
+                        X[0,:].max()
+                        - self.plant.jointAngleBounds['UB']
+                    ) <= 5*(np.pi/180)
+                ):
+                poorBabbling=False
+            else:
+                print("Poor Babbling! Trying again...")
         ## plot (and save) figures
         output = {}
         if plot==True:
-            self.plant.plot_states(X,Return=True)
+            # self.plant.plot_states(X,Return=True)
+            self.plant.plot_states_and_inputs(X,U,returnFig=True)
 
-            self.plant.plot_joint_angle_power_spectrum_and_distribution(X)
+            self.plant.plot_output_power_spectrum_and_distribution(X,returnFigs=True)
 
             self.plant.plot_tendon_tension_deformation_curves(X)
 
@@ -455,10 +545,11 @@ class motor_babbling_1DOF2DOA:
             if saveFigures==True:
                 trialPath = save_figures(
                     "babbling_trials/",
-                    "propAmp",
+                    babblingParams["Babbling Type"],
                     self.totalParams,
                     returnPath=True,
-                    saveAsPDF=saveAsPDF
+                    saveAsPDF=saveAsPDF,
+                    saveAsMD=True
                 )
 
                 if saveParams==True:
@@ -493,7 +584,7 @@ class motor_babbling_1DOF2DOA:
                 save_params_as_MAT(self.totalParams)
 
             if saveData==True:
-                self.save_data(X)
+                babblingTrial.save_data(X)
 
             if returnData==True:
                 output["time"] = self.plant.time

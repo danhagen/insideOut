@@ -3,15 +3,17 @@ import os
 import pickle
 import shutil
 import textwrap
+from datetime import datetime
 
 import matlab.engine
 from motor_babbling_1DOF2DOA import *
 from save_params import *
+from pathlib import Path
 
 # ANN parameters
 ANNParams = {
     "Number of Nodes": 15,
-    "Number of Epochs": 50,
+    "Number of Epochs": 10000,
     "Number of Trials": 2,
 }
 colors = [
@@ -104,8 +106,8 @@ class neural_network:
         ax.set_ylabel("Log Performance (RMSE in deg.)")
         ax.spines["right"].set_visible(False)
         ax.spines["top"].set_visible(False)
-        ax.set_xticks(list(np.linspace(0, self.numberOfEpochs, 6)))
-        ax.set_xticklabels([int(el) for el in ax.get_xticks()])
+        # ax.set_xticks(list(np.linspace(0, self.numberOfEpochs, 6)))
+        # ax.set_xticklabels([int(el) for el in ax.get_xticks()])
 
         for i in range(len(self.groups)):
             ax.plot(
@@ -239,18 +241,19 @@ class neural_network:
 
         self.trialPath = save_figures(
             "training_trials/",
-            "propAmp",
+            babblingParams["Babbling Type"],
             self.totalParams,
             returnPath=True,
-            saveAsPDF=False
+            saveAsPDF=False,
+            saveAsMD=True
         )
-        babblingTrial.save_data(X, filePath=self.trialPath + "babblingTrial_outputData.mat")
-        save_params_as_MAT(self.totalParams, path=self.trialPath)
+        babblingTrial.save_data(X, filePath=str(self.trialPath) + "/" + "babblingTrial_outputData.mat")
+        save_params_as_MAT(self.totalParams, path=str(self.trialPath)+"/")
 
         # MATLAB ANN func
         eng = matlab.engine.start_matlab()
         self.ANNOutput = eng.ANNmapping_to_python(
-            self.trialPath,
+            str(self.trialPath)+"/",
             self.numberOfNodes,
             self.numberOfEpochs
         )
@@ -258,23 +261,37 @@ class neural_network:
         fig1 = self.plot_performance(returnFig=True)
 
         save_figures(
-            self.trialPath[:-18],
-            "propAmp",
+            str(self.trialPath)[:-18],
+            "training_perf",
             self.totalParams,
             figs=[fig1],
-            subFolderName=self.trialPath[-18:],
+            subFolderName=str(self.trialPath)[-18:],
             returnPath=False,
-            saveAsPDF=True
+            saveAsPDF=True,
+            saveAsMD=True
         )
-        with open(self.trialPath + "trainingData.pkl", 'wb') as handle:
+        with open(str(self.trialPath) +"/" + "trainingData.pkl", 'wb') as handle:
             pickle.dump(self.ANNOutput, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def run_experimental_trial(self, **kwargs):
+        savePath = kwargs.get("savePath",None)
+        if savePath is not None:
+            assert Path(savePath).exists(), "savePath must be either None (default) or an existing directory to save the experimental trial."
+        else:
+            savePath = "experimental_trials/"
         returnBabblingData = kwargs.get('returnBabblingData', False)
         assert type(returnBabblingData) == bool, "returnBabblingData must be either True or False (default)."
-        fullEpochs = False
-        count = 0
-        while not fullEpochs:
+
+        plotTrial = kwargs.get('plotTrial',True)
+        assert type(plotTrial)==bool, "plotTrial must be either True (default) or False."
+
+        upsample = kwargs.get("upsample",False)
+        assert type(upsample)==bool, "upsample must be either True or False (default)"
+
+        if upsample==True:
+            self.plant.dt=self.plant.dt/50
+            tempTime = self.plant.time
+            self.plant.time=np.arange(0,self.plant.time[-1]+self.plant.dt,self.plant.dt)
             # Generate babbling data
             babblingTrial = motor_babbling_1DOF2DOA(
                 self.plant,
@@ -282,7 +299,6 @@ class neural_network:
             )
             babblingOutput = babblingTrial.run_babbling_trial(
                 np.pi,
-                plot=True,
                 saveFigures=False,
                 saveAsPDF=False,
                 returnData=True,
@@ -290,64 +306,321 @@ class neural_network:
                 saveParams=False
             )
 
+            self.plant.dt=self.plant.dt*50
+            self.plant.time=tempTime
+            babblingTrial.babblingSignals=babblingTrial.babblingSignals[::50,:]
+            Time = babblingOutput["time"][::50]
+            X = babblingOutput["X"][:,::50]
+            U = babblingOutput["U"][:,::50]
+
+            if plotTrial==True:
+                # self.plant.plot_states(X,Return=True)
+                babblingTrial.plant.plot_states_and_inputs(X,U,returnFig=True)
+
+                babblingTrial.plant.plot_output_power_spectrum_and_distribution(X,returnFigs=True)
+
+                babblingTrial.plant.plot_tendon_tension_deformation_curves(X)
+
+                babblingTrial.plot_signals_power_spectrum_and_amplitude_distribution()
+        else:
+            babblingTrial = motor_babbling_1DOF2DOA(
+                self.plant,
+                self.totalParams
+            )
+            babblingOutput = babblingTrial.run_babbling_trial(
+                np.pi,
+                saveFigures=False,
+                saveAsPDF=False,
+                returnData=True,
+                saveData=False,
+                saveParams=False
+            )
             Time = babblingOutput["time"]
             X = babblingOutput["X"]
             U = babblingOutput["U"]
 
-            # save figures and parameters
-
+        # save figures and parameters
+        if plotTrial==True:
             self.trialPath = save_figures(
-                "experimental_trials/",
-                "propAmp",
+                savePath,
+                babblingParams["Babbling Type"],
                 self.totalParams,
                 returnPath=True,
-                saveAsPDF=False
+                saveAsPDF=False,
+                saveAsMD=True
             )
-            babblingTrial.save_data(X, filePath=self.trialPath + "babblingTrial_outputData.mat")
-            save_params_as_MAT(self.totalParams, path=self.trialPath)
-
-            startTime = time.time()
-            eng = matlab.engine.start_matlab()
-            ANNOutput = eng.ANNmapping_with_testing_to_python(
-                self.trialPath,
-                self.numberOfNodes,
-                self.numberOfEpochs
+        else:
+            self.trialPath = (
+                savePath
+                + datetime.now().strftime("%Y_%m_%d_%H%M%S")
             )
+            os.mkdir(self.trialPath)
 
-            self.ANNOutput, experimentalData = \
-                ANNOutput['babbling'], ANNOutput['experiment']  # in rads.
+        babblingTrial.save_data(X, filePath=str(self.trialPath)+"/"+ "babblingTrial_outputData.mat")
+        save_params_as_MAT(self.totalParams, path=str(self.trialPath)+"/")
 
-            fullEpochs = np.all(
-                [
-                    (
-                            np.array(
-                                self.ANNOutput[key]["tr"]["perf"]
-                            ).shape[1]
-                            ==
-                            (self.numberOfEpochs + 1)
-                    )
-                    for key in self.ANNOutput
-                ]
-            )
-            if not fullEpochs:
-                count += 1
-                print("Early Termination, Trying again... " + str(count))
-                shutil.rmtree(self.trialPath)
-                plt.close('all')
-
-        fig1 = self.plot_performance(returnFig=True)
-        save_figures(
-            self.trialPath[:-18],
-            "training_perf",
-            self.totalParams,
-            figs=[fig1],
-            subFolderName=self.trialPath[-18:],
-            returnPath=False,
-            saveAsPDF=False
+        startTime = time.time()
+        eng = matlab.engine.start_matlab()
+        ANNOutput = eng.ANNmapping_with_testing_to_python(
+            str(self.trialPath)+"/",
+            self.numberOfNodes,
+            self.numberOfEpochs
         )
-        plt.close('all')
-        with open(self.trialPath + "trainingData.pkl", 'wb') as handle:
+
+        self.ANNOutput, experimentalData = \
+            ANNOutput['babbling'], ANNOutput['experiment']  # in rads.
+
+        if plotTrial==True:
+            fig1 = self.plot_performance(returnFig=True)
+            save_figures(
+                str(self.trialPath)[:-18],
+                "training_perf",
+                self.totalParams,
+                figs=[fig1],
+                subFolderName=str(self.trialPath)[-17:],
+                returnPath=False,
+                saveAsPDF=False,
+                saveAsMD=True
+            )
+            plt.close('all')
+        with open(str(self.trialPath) + "/" + "trainingData.pkl", 'wb') as handle:
             pickle.dump(self.ANNOutput, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+        if returnBabblingData is True:
+            return experimentalData, babblingOutput
+        else:
+            return experimentalData
+            # fullEpochs = False
+            # count = 0
+            # while not fullEpochs:
+            #     # Generate babbling data
+            #     babblingTrial = motor_babbling_1DOF2DOA(
+            #         self.plant,
+            #         self.totalParams
+            #     )
+            #     babblingOutput = babblingTrial.run_babbling_trial(
+            #         np.pi,
+            #         plot=plotTrial,
+            #         saveFigures=False,
+            #         saveAsPDF=False,
+            #         returnData=True,
+            #         saveData=False,
+            #         saveParams=False
+            #     )
+            #
+            #     Time = babblingOutput["time"]
+            #     X = babblingOutput["X"]
+            #     U = babblingOutput["U"]
+            #
+            #     # save figures and parameters
+            #     if plotTrial==True:
+            #         self.trialPath = save_figures(
+            #             "experimental_trials/",
+            #             babblingParams["Babbling Type"],
+            #             self.totalParams,
+            #             returnPath=True,
+            #             saveAsPDF=False,
+            #             saveAsMD=True
+            #         )
+            #     else:
+            #         self.trialPath = (
+            #             "experimental_trials/"
+            #             + datetime.now().strftime("%Y_%m_%d_%H%M%S")
+            #         )
+            #         os.mkdir(self.trialPath)
+            #
+            #     babblingTrial.save_data(X, filePath=str(self.trialPath)+"/"+ "babblingTrial_outputData.mat")
+            #     save_params_as_MAT(self.totalParams, path=str(self.trialPath)+"/")
+            #
+            #     startTime = time.time()
+            #     eng = matlab.engine.start_matlab()
+            #     ANNOutput = eng.ANNmapping_with_testing_to_python(
+            #         str(self.trialPath)+"/",
+            #         self.numberOfNodes,
+            #         self.numberOfEpochs
+            #     )
+            #
+            #     self.ANNOutput, experimentalData = \
+            #         ANNOutput['babbling'], ANNOutput['experiment']  # in rads.
+            #
+            #     fullEpochs = np.all(
+            #         [
+            #             (
+            #                     np.array(
+            #                         self.ANNOutput[key]["tr"]["perf"]
+            #                     ).shape[1]
+            #                     ==
+            #                     (self.numberOfEpochs + 1)
+            #             )
+            #             for key in self.ANNOutput
+            #         ]
+            #     )
+            #     if not fullEpochs:
+            #         count += 1
+            #         print("Early Termination, Trying again... " + str(count))
+            #         print("="*20)
+            #         for key in self.ANNOutput:
+            #             print(
+            #                 "\t - " + key + ": "
+            #                 + str(
+            #                     np.array(
+            #                         self.ANNOutput[key]["tr"]["perf"]
+            #                     ).shape[1]
+            #                 )
+            #             )
+            #         print("="*20)
+            #         shutil.rmtree(self.trialPath)
+            #         plt.close('all')
+            #
+            # if plotTrial==True:
+            #     fig1 = self.plot_performance(returnFig=True)
+            #     save_figures(
+            #         str(self.trialPath)[:-18],
+            #         "training_perf",
+            #         self.totalParams,
+            #         figs=[fig1],
+            #         subFolderName=str(self.trialPath)[-17:],
+            #         returnPath=False,
+            #         saveAsPDF=False,
+            #         saveAsMD=True
+            #     )
+            #     plt.close('all')
+            # with open(str(self.trialPath) + "/" + "trainingData.pkl", 'wb') as handle:
+            #     pickle.dump(self.ANNOutput, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            # if returnBabblingData is True:
+            #     return experimentalData, babblingOutput
+            # else:
+            #     return experimentalData
+
+    def run_frequency_sweep_trial(self, **kwargs):
+        returnBabblingData = kwargs.get('returnBabblingData', False)
+        assert type(returnBabblingData) == bool, "returnBabblingData must be either True or False (default)."
+
+        plotTrial = kwargs.get('plotTrial',True)
+        assert type(plotTrial)==bool, "plotTrial must be either True (default) or False."
+
+        basePath = kwargs.get('basePath',"experimental_trials/Sweep_Frequency/")
+        assert type(basePath)==str,"basePath must be a str."
+
+        upsample = kwargs.get("upsample",False)
+        assert type(upsample)==bool, "upsample must be either True or False (default)"
+
+        if upsample==True:
+            self.plant.dt=self.plant.dt/50
+            tempTime = self.plant.time
+            self.plant.time=np.arange(0,self.plant.time[-1]+self.plant.dt,self.plant.dt)
+            # Generate babbling data
+            babblingTrial = motor_babbling_1DOF2DOA(
+                self.plant,
+                self.totalParams
+            )
+            babblingOutput = babblingTrial.run_babbling_trial(
+                np.pi,
+                saveFigures=False,
+                saveAsPDF=False,
+                returnData=True,
+                saveData=False,
+                saveParams=False
+            )
+
+            self.plant.dt=self.plant.dt*50
+            self.plant.time=tempTime
+            babblingTrial.babblingSignals=babblingTrial.babblingSignals[::50,:]
+            Time = babblingOutput["time"][::50]
+            X = babblingOutput["X"][:,::50]
+            U = babblingOutput["U"][:,::50]
+
+            if plotTrial==True:
+                # self.plant.plot_states(X,Return=True)
+                babblingTrial.plant.plot_states_and_inputs(X,U,returnFig=True)
+
+                babblingTrial.plant.plot_output_power_spectrum_and_distribution(X,returnFigs=True)
+
+                babblingTrial.plant.plot_tendon_tension_deformation_curves(X)
+
+                babblingTrial.plot_signals_power_spectrum_and_amplitude_distribution()
+        else:
+            babblingTrial = motor_babbling_1DOF2DOA(
+                self.plant,
+                self.totalParams
+            )
+            babblingOutput = babblingTrial.run_babbling_trial(
+                np.pi,
+                saveFigures=False,
+                saveAsPDF=False,
+                returnData=True,
+                saveData=False,
+                saveParams=False
+            )
+            Time = babblingOutput["time"]
+            X = babblingOutput["X"]
+            U = babblingOutput["U"]
+
+        # # Generate babbling data
+        # babblingTrial = motor_babbling_1DOF2DOA(
+        #     self.plant,
+        #     self.totalParams
+        # )
+        # babblingOutput = babblingTrial.run_babbling_trial(
+        #     np.pi,
+        #     plot=plotTrial,
+        #     saveFigures=False,
+        #     saveAsPDF=False,
+        #     returnData=True,
+        #     saveData=False,
+        #     saveParams=False
+        # )
+        #
+        # Time = babblingOutput["time"]
+        # X = babblingOutput["X"]
+        # U = babblingOutput["U"]
+
+        # save figures and parameters
+        if plotTrial==True:
+            self.trialPath = save_figures(
+                basePath,
+                babblingParams["Babbling Type"],
+                self.totalParams,
+                returnPath=True,
+                saveAsPDF=False,
+                saveAsMD=True
+            )
+        else:
+            self.trialPath = (
+                basePath
+                + datetime.now().strftime("%Y_%m_%d_%H%M%S")
+            )
+            os.mkdir(self.trialPath)
+
+        babblingTrial.save_data(X, filePath=str(self.trialPath)+"/"+ "babblingTrial_outputData.mat")
+        save_params_as_MAT(self.totalParams, path=str(self.trialPath)+"/")
+
+        startTime = time.time()
+        eng = matlab.engine.start_matlab()
+        ANNOutput = eng.ANNmapping_with_testing_to_python_Frequency_Sweep(
+            str(self.trialPath)+"/",
+            self.numberOfNodes
+        )
+
+        self.ANNOutput, experimentalData = \
+            ANNOutput['babbling'], ANNOutput['experiment']  # in rads.
+
+        if plotTrial==True:
+            fig1 = self.plot_performance(returnFig=True)
+            save_figures(
+                str(self.trialPath)[:-18],
+                "training_perf",
+                self.totalParams,
+                figs=[fig1],
+                subFolderName=str(self.trialPath)[-17:],
+                returnPath=False,
+                saveAsPDF=False,
+                saveAsMD=True
+            )
+            plt.close('all')
+        with open(str(self.trialPath) + "/" + "trainingData.pkl", 'wb') as handle:
+            pickle.dump(self.ANNOutput, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
         if returnBabblingData is True:
             return experimentalData, babblingOutput
         else:
@@ -509,12 +782,13 @@ if __name__ == "__main__":
         )
         path = save_figures(
             ANN.trialPath[:-18],
-            "propAmp",
+            "performance_dist",
             ANN.totalParams,
             figs=[fig1, fig2],
             subFolderName=folderName,
             saveAsPDF=True,
-            returnPath=True
+            returnPath=True,
+            saveAsMD=True
         )
         plt.close('all')
 

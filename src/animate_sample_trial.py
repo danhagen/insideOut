@@ -237,7 +237,7 @@ def plot_bar_plots(outputData,metric="MAE",returnFig=True):
         plt.show()
 
 def return_radial_bins(errorArrays,jointAngleArrays,bins=12):
-    theta_rays = np.arange(0,np.pi+1e-3,np.pi/bins)
+    thetaRays = np.arange(0,np.pi+1e-3,np.pi/bins)
     groups = ["all","bio","kinapprox","allmotor"]
     radial_bins={
         "bins" : bins,
@@ -251,18 +251,18 @@ def return_radial_bins(errorArrays,jointAngleArrays,bins=12):
     }
     for i in range(len(groups)):
         tempJointAngle = (jointAngleArrays[i,:]-np.pi/2).flatten()
-        for j in range(len(theta_rays)-1):
+        for j in range(len(thetaRays)-1):
             bin_name = (
-                '{:0.1f}'.format(180*theta_rays[j]/np.pi)
+                '{:0.1f}'.format(180*thetaRays[j]/np.pi)
                 + " to "
-                + '{:0.1f}'.format(180*theta_rays[j+1]/np.pi)
+                + '{:0.1f}'.format(180*thetaRays[j+1]/np.pi)
             )
             radial_bins[groups[i]][bin_name] = {}
             indices = np.array(
                 np.where(
                     np.logical_and(
-                        tempJointAngle<theta_rays[j+1],
-                        tempJointAngle>=theta_rays[j]
+                        tempJointAngle<thetaRays[j+1],
+                        tempJointAngle>=thetaRays[j]
                     )
                 )
             )
@@ -357,21 +357,21 @@ def plot_polar_bar_plots(
     axs=[ax1,ax2,ax3,ax4]
 
     slices = radial_bins['bins']
-    theta_rays = np.arange(0,np.pi+1e-3,np.pi/slices)
+    thetaRays = np.arange(0,np.pi+1e-3,np.pi/slices)
     groups = ["all","bio","kinapprox","allmotor"]
     for i in range(4):
-        for j in range(len(theta_rays)-1):
+        for j in range(len(thetaRays)-1):
             bin_name = (
-                '{:0.1f}'.format(180*theta_rays[j]/np.pi)
+                '{:0.1f}'.format(180*thetaRays[j]/np.pi)
                 + " to "
-                + '{:0.1f}'.format(180*theta_rays[j+1]/np.pi)
+                + '{:0.1f}'.format(180*thetaRays[j+1]/np.pi)
             )
             if j%2==0:
                 axs[i].add_patch(
                     Wedge(
                         (0,0), 3.3,
-                        (180/np.pi)*theta_rays[j],
-                        (180/np.pi)*theta_rays[j+1],
+                        (180/np.pi)*thetaRays[j],
+                        (180/np.pi)*thetaRays[j+1],
                         color = "0.85"
                     )
                 )
@@ -379,8 +379,8 @@ def plot_polar_bar_plots(
                 Wedge(
                     (0,0),
                     np.log10(radial_bins[groups[i]][bin_name][metric])+offset,
-                    (180/np.pi)*theta_rays[j],
-                    (180/np.pi)*theta_rays[j+1],
+                    (180/np.pi)*thetaRays[j],
+                    (180/np.pi)*thetaRays[j+1],
                     color = colors[i],
                     alpha=0.65
                 )
@@ -482,7 +482,7 @@ def plot_polar_bar_plots(
         #         lw=0.5
         #     )
         #
-        # for ray in theta_rays:
+        # for ray in thetaRays:
         #     axs[i].plot(
         #         [0,maxError*np.cos(ray)],
         #         [0,maxError*np.sin(ray)],
@@ -540,29 +540,29 @@ def plot_polar_bar_plots_together(
     ax = plt.gca()
 
     slices = radial_bins['bins']
-    theta_rays = np.arange(0,np.pi+1e-3,np.pi/slices)
+    thetaRays = np.arange(0,np.pi+1e-3,np.pi/slices)
     sectorWidth = np.pi/slices/5
-    theta_rays_times_4 = []
-    for j in range(len(theta_rays)-1):
-        midAngle = (theta_rays[j+1]+theta_rays[j])/2
-        theta_rays_times_4.append(
+    thetaRays_SplitInFourths = []
+    for j in range(len(thetaRays)-1):
+        midAngle = (thetaRays[j+1]+thetaRays[j])/2
+        thetaRays_SplitInFourths.append(
             [(midAngle + i*sectorWidth) for i in [-2,-1,0,1]]
         )
-    theta_rays_times_4 = np.concatenate(theta_rays_times_4)
+    thetaRays_SplitInFourths = np.concatenate(thetaRays_SplitInFourths)
     groups = ["all","bio","kinapprox","allmotor"]
 
-    for j in range(len(theta_rays)-1):
+    for j in range(len(thetaRays)-1):
         bin_name = (
-            '{:0.1f}'.format(180*theta_rays[j]/np.pi)
+            '{:0.1f}'.format(180*thetaRays[j]/np.pi)
             + " to "
-            + '{:0.1f}'.format(180*theta_rays[j+1]/np.pi)
+            + '{:0.1f}'.format(180*thetaRays[j+1]/np.pi)
         )
         if j%2==0:
             ax.add_patch(
                 Wedge(
                     (0,0), 3.3,
-                    (180/np.pi)*theta_rays[j],
-                    (180/np.pi)*theta_rays[j+1],
+                    (180/np.pi)*thetaRays[j],
+                    (180/np.pi)*thetaRays[j+1],
                     color = "0.85"
                 )
             )
@@ -571,8 +571,8 @@ def plot_polar_bar_plots_together(
                 Wedge(
                     (0,0),
                     np.log10(radial_bins[groups[i]][bin_name][metric])+2,
-                    (180/np.pi)*theta_rays_times_4[4*j+i],
-                    (180/np.pi)*(theta_rays_times_4[4*j+i]+sectorWidth),
+                    (180/np.pi)*thetaRays_SplitInFourths[4*j+i],
+                    (180/np.pi)*(thetaRays_SplitInFourths[4*j+i]+sectorWidth),
                     color = colors[i],
                     alpha=0.65
                 )
@@ -1024,10 +1024,12 @@ if __name__=="__main__":
         ### save figs
         save_figures(
             ANN.trialPath,
-            "propAmp",
-            {},
+            babblingParams["Babbling Type"],
+            {**plantParams,**babblingParams,**ANNParams},
             figs=figs,
-            subFolderName=metric+"/"
+            subFolderName=metric+"/",
+            saveAsMD=True,
+            addNotes="Simulation and animation of a sample trial. Will include simulation of *motor babbling*, followed by simulations of ANNs, and finally their *generalization* to different movements."
         )
         plt.close('all')
 

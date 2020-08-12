@@ -707,7 +707,9 @@ class animate_pendulum_ANN:
 #                 "v0",
 #                 plantParams,
 #                 returnPath=False,
-#                 saveAsPDF=True
+#                 saveAsPDF=True,
+#                 saveAsMD=True,
+#                 addNotes="Default simulation and animation of ANN."
 #             )
 #         if '--animate' in sys.argv:
 #             downsamplingFactor = int(0.3/plantParams["dt"])

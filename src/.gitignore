@@ -1,7 +1,15 @@
+config.py
+limbo/
+
 # large experimental trial data
 experimental_trials/*.mat
 experimental_trials/local
-
+experimental_trials/Progress_Reports
+experimental_trials/Sweep_Frequency_More_Damped_v1
+experimental_trials/Sweep_Frequency_More_Damped_v2
+experimental_trials/Sweep_Frequency_More_Damped_v3
+experimental_trials/Sweep_Frequency_More_Damped_v4
+experimental_trials/Sweep_Frequency_More_Damped_v5
 # visualizations
 visualizations/
 

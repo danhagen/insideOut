@@ -2,8 +2,12 @@ from test_NN_1DOF2DOA import *
 import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
-from twilio.rest import Client
 from datetime import datetime
+from danpy.useful_functions import timer
+
+if path.exists("slack_functions.py"):
+    from slack_functions import *
+    HAL = code_progress()
 
 basePath = "experimental_trials/"
 for fileNameBase in [
@@ -18,7 +22,7 @@ if __name__=='__main__':
     ### ANN parameters
     ANNParams = {
         "Number of Nodes" : 15,
-        "Number of Epochs" : 50,
+        "Number of Epochs" : 10000,
         "Number of Trials" : 50,
     }
 
@@ -86,9 +90,14 @@ if __name__=='__main__':
     assert args.babType in ['continuous','step'], "babType must be either 'continuous' (default) or 'step'."
     babblingParams['Babbling Type'] = args.babType
     ANNParams["Number of Nodes"] = args.nodes
+    ANNParams["Number of Epochs"] = args.epochs
 
     # babblingDurations = list(np.arange(30,360+1,15))
-    babblingDurations = list(np.arange(1,10+1,1))
+    # babblingDurations = list(np.arange(1,15+1,2))
+    # [babblingDurations.append(el) for el in [20,25,30]]
+    babblingDurations = [7.5] + list(np.arange(10,30+1e-3,5))
+    # babblingDurations.insert(0,1)
+
     numberOfTrials = args.trials
     groupNames = [
         "all",
@@ -104,13 +113,16 @@ if __name__=='__main__':
         "angleStep_stiffStep"
     ]
 
-    totalStartTime = time.time()
+    plant = plant_pendulum_1DOF2DOF(plantParams)
+    trialTimer = timer()
+    totalTimer = timer()
     for dur in babblingDurations:
-        startTime = time.time()
-        trialStartTime = startTime
-        print("Babbling Duration: " + str(dur) + "s")
+        # startTime = time.time()
+        # trialStartTime = startTime
+        trialTimer.reset()
+        print(f"Babbling Duration: {str(dur)}s")
         for i in range(numberOfTrials):
-            print("Running Trial " + str(i+1) + "/" + str(numberOfTrials))
+            print(f"Running Trial {str(i+1)}/{str(numberOfTrials)}")
 
             plantParams["Simulation Duration"] = int(dur) # returned to original value.
 
@@ -127,9 +139,6 @@ if __name__=='__main__':
                             ..experimentMAE (in rad.)
                             ..experimentSTD (in rad.)
             """
-
-            # ### Plot experimental data
-            # figs = plot_experimental_data(experimentalData,returnFigs=True)
 
             # SAVE EXPERIMENTAL DATA TO TRIAL FOLDER
             formattedData = {}
@@ -160,9 +169,12 @@ if __name__=='__main__':
             with open(path.join(ANN.trialPath,'experimentalData.pkl'), 'wb') as handle:
                 pickle.dump(experimentalData, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
+            # ### Plot experimental data
+            # figs = plot_experimental_data(experimentalData,returnFigs=True)
+
             for metric in metrics:
                 ### bar plots
-                fig = plot_bar_plots(experimentalData,metric=metric)
+                fig = plot_bar_plots(experimentalData,metric=metric,yscale='log')
 
                 ### radial average error versus positions
                 figs = [fig]
@@ -173,77 +185,84 @@ if __name__=='__main__':
                 save_figures(
                     ANN.trialPath,
                     "perf_vs_bab_dur",
-                    {},
+                    {"metric":metric},
                     figs=figs,
-                    subFolderName=metric+"/"
+                    subFolderName=metric+"/",
+                    saveAsMD=True,
+                    addNotes="### For a single trial, with babbling duration of " + str(dur) + " seconds.\n\n"
                 )
                 plt.close('all')
             print('\a')
-            runTime = time.time()-startTime
-            seconds = runTime % (24 * 3600)
-            hour = seconds // 3600
-            seconds %= 3600
-            minutes = seconds // 60
-            seconds %= 60
-            runTime = "%d:%02d:%02d" % (hour, minutes, seconds)
-            trialRunTime = time.time()-trialStartTime
-            seconds = trialRunTime % (24 * 3600)
-            hour = seconds // 3600
-            seconds %= 3600
-            minutes = seconds // 60
-            seconds %= 60
-            trialRunTime = "(+%d:%02d:%02d)" % (hour, minutes, seconds)
-            trialStartTime = time.time()
-            print('Run Time: ' + runTime + " " + trialRunTime + "\n")
+            trialTimer.end_trial()
 
         print("Consolidating Data from " + str(dur) + "s Babbling Trials...")
-        plot_consolidated_data_babbling_duration_experiment(dur,metrics=args.metrics)
+        plot_consolidated_data_babbling_duration_experiment(dur,plant,metrics=args.metrics)
+        try:
+            percentDone = (np.where(dur==babblingDurations)[0][0]+1)/len(babblingDurations)
+            HAL.slack_post_message_update(
+                percentDone,
+                time.time()-totalStartTime
+            )
+        except:
+            pass
+
+        totalTimer.end_trial(0)
+        print(f'Run Time for {numberOfTrials} trials of {dur}s motor babbling: {totalTimer.trialRunTimeStr}')
+        HAL.slack_post_message_update(
+            (np.where(dur==np.array(babblingDurations))[0][0]+1)/len(babblingDurations),
+            totalTimer.totalRunTime
+        )
+
+    print(f'All trials completed! Total Experiment Run Time: {totalTimer.totalRunTimeStr}')
 
     pathName = (
         'experimental_trials/'
     )
     folderName = (
         'All_Consolidated_Trials_'
-        + '{:03d}'.format(int(args.trials))
-        + '_Trials_' + babblingParams["Babbling Type"].capitalize()
-        + '_Babbling_'
+        + '{:03d}'.format(int(args.trials)) + '_Trials_'
+        + babblingParams["Babbling Type"].capitalize() + '_Babbling_'
         + '{:03d}'.format(int(args.nodes)) + "_Nodes"
-        + '/'
     )
     print("Plotting all data!")
     for metric in metrics:
         plot_babbling_duration_vs_average_performance(metric)
+        plot_babbling_duration_vs_average_performance(metric,includeSTD=True)
+        plot_babbling_duration_vs_average_performance(metric,yscale='log')
+        plot_babbling_duration_vs_performance_STD(metric)
+        plot_babbling_duration_vs_performance_STD(metric,yscale='log')
         save_figures(
             pathName,
             "perf_v_bab_dur_"+metric,
-            {"Number of Trials":args.trials},
+            {"Number of Trials":args.trials,"Babbling Durations":babblingDurations,"Number of Nodes":args.nodes,"metrics":args.metrics,"Babbling Type":args.babType,"Number of Epochs":args.epochs},
             subFolderName=folderName,
-            saveAsPDF=True
+            saveAsPDF=True,
+            saveAsMD=True,
+            addNotes="Consolidated trials for babbling duration sweep"
         )
         plt.close('all')
 
-    runTime = time.time()-totalStartTime
-    seconds = runTime % (24 * 3600)
-    hour = seconds // 3600
-    seconds %= 3600
-    minutes = seconds // 60
-    seconds %= 60
-    runTime = "%d:%02d:%02d" % (hour, minutes, seconds)
+    trialDirectories = [
+        child for child in Path(pathName).iterdir()
+        if child.is_dir() and child.stem[:12]=="Consolidated"
+    ]
+    for folder in trialDirectories:
+        shutil.copytree(str(folder), pathName+folderName+"/"+folder.name)
+        shutil.rmtree(str(folder))
+
+    totalTimer.end_trial()
 
     if path.exists("slack_functions.py"):
-        from slack_functions import *
         message = (
             '\n'
-            + 'Total Run Time: ' + runTime + '\n\n'
+            + '_Test Trial Finished!!!_ \n\n'
+            + 'Note that this was using frequencies of 1 Hz for all desired movements.\n\n'
+            + 'Total Run Time: ' + totalTimer.totalRunTimeStr + '\n\n'
             + '```params = {\n'
             + '\t"Number of Trials" : ' + str(args.trials) + ',\n'
             + '\t"Number of Nodes" : ' + str(args.nodes) + ',\n'
-            + '\t"Babbling Type" : "' + args.babType + '"\n'
+            + '\t"Babbling Type" : "continuous"\n'
             + '}```'
         )
-        progress_report_to_slack(
-            __file__,
-            message
-        )
-
-    print("Total Run Time: " + runTime)
+        HAL.add_report_to_github_io(pathName+folderName+"/README.md")
+        HAL.slack_post_message_code_completed(message)

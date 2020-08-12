@@ -3,6 +3,11 @@ import matplotlib
 matplotlib.rcParams['pdf.fonttype'] = 42
 matplotlib.rcParams['ps.fonttype'] = 42
 from datetime import datetime
+from danpy.useful_functions import timer
+
+if path.exists("slack_functions.py"):
+    from slack_functions import *
+    HAL = code_progress()
 
 basePath = "experimental_trials/"
 for fileNameBase in [
@@ -84,8 +89,20 @@ if __name__=='__main__':
     assert args.babType in ['continuous','step'], "babType must be either 'continuous' (default) or 'step'."
     babblingParams['Babbling Type'] = args.babType
     plantParams["Simulation Duration"] = args.dur
+    ANNParams["Number of Epochs"] = args.epochs
 
-    numberOfNodesList = list(np.arange(5,50+1,5))
+    # numberOfNodesList = list(np.arange(5,50+1,5))
+    numberOfNodesList = list(np.arange(3,20+1,2))
+    progressReportNodes = [
+        numberOfNodesList[
+            np.abs(
+                np.array(numberOfNodesList)
+                - el*(numberOfNodesList[-1]-numberOfNodesList[0])
+                + numberOfNodesList[0]
+            ).argmin() + 1
+        ]
+        for el in [0.2,0.4,0.6,0.8]
+    ] # closest node number for 20% progress intervals
     numberOfTrials = args.trials
     groupNames = [
         "all",
@@ -101,10 +118,12 @@ if __name__=='__main__':
         "angleStep_stiffStep"
     ]
 
-    totalStartTime = time.time()
+    trialTimer = timer()
+    totalTimer = timer()
+    averagePercentageSpentAwayFromEdges = []
+    plotMetrics=False
     for nodeNumber in numberOfNodesList:
-        startTime = time.time()
-        trialStartTime = startTime
+        trialTimer.reset()
         print("Number of Nodes: " + str(nodeNumber))
         for i in range(numberOfTrials):
             print("Running Trial " + str(i+1) + "/" + str(numberOfTrials))
@@ -112,7 +131,11 @@ if __name__=='__main__':
             ANNParams["Number of Nodes"] = int(nodeNumber) # returned to original value.
 
             ANN = neural_network(ANNParams,babblingParams,plantParams)
-            experimentalData = ANN.run_experimental_trial()
+            experimentalData, babblingOutput = ANN.run_experimental_trial(
+                returnBabblingData=True,
+                plotTrial=False
+            )
+            # experimentalData = ANN.run_experimental_trial()
             """
                 experimentalData
                     ..<Group Name>
@@ -124,9 +147,6 @@ if __name__=='__main__':
                             ..experimentMAE (in rad.)
                             ..experimentSTD (in rad.)
             """
-
-            # ### Plot experimental data
-            # figs = plot_experimental_data(experimentalData,returnFigs=True)
 
             # SAVE EXPERIMENTAL DATA TO TRIAL FOLDER
             formattedData = {}
@@ -157,44 +177,50 @@ if __name__=='__main__':
             with open(path.join(ANN.trialPath,'experimentalData.pkl'), 'wb') as handle:
                 pickle.dump(experimentalData, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-            for metric in metrics:
-                ### bar plots
-                fig = plot_bar_plots(experimentalData,metric=metric)
+            # ### Plot experimental data
+            # figs = plot_experimental_data(experimentalData,returnFigs=True)
 
-                ### radial average error versus positions
-                figs = [fig]
-                # newFigs=plot_all_polar_bar_plots(experimentalData,metric)
-                # [figs.append(fig) for fig in newFigs]
+            if plotMetrics==True:
+                for metric in metrics:
+                    ### bar plots
+                    fig = plot_bar_plots(experimentalData,metric=metric,yscale='log')
 
-                ### save figs
-                save_figures(
-                    ANN.trialPath,
-                    "perf_vs_bab_dur",
-                    {},
-                    figs=figs,
-                    subFolderName=metric+"/"
+                    ### radial average error versus positions
+                    figs = [fig]
+                    # newFigs=plot_all_polar_bar_plots(experimentalData,metric)
+                    # [figs.append(fig) for fig in newFigs]
+
+                    ### save figs
+                    save_figures(
+                        ANN.trialPath,
+                        "perf_vs_bab_dur",
+                        {"metric":metric},
+                        figs=figs,
+                        subFolderName=metric+"/",
+                        saveAsMD=True,
+                        addNotes="###For a single trial, with " + str(nodeNumber) + " hidden layer nodes.\n\n"
+                    )
+                    plt.close('all')
+            trialTimer.end_trial()
+        if nodeNumber in progressReportNodes:
+            try:
+                progress = (np.where(
+                    np.array(numberOfNodesList)==nodeNumber
+                )[0][0]+1) / len(numberOfNodesList)
+                HAL.slack_post_message_update(
+                    progress,
+                    totalTimer.totalRunTime
                 )
-                plt.close('all')
-            print('\a')
-            runTime = time.time()-startTime
-            seconds = runTime % (24 * 3600)
-            hour = seconds // 3600
-            seconds %= 3600
-            minutes = seconds // 60
-            seconds %= 60
-            runTime = "%d:%02d:%02d" % (hour, minutes, seconds)
-            trialRunTime = time.time()-trialStartTime
-            seconds = trialRunTime % (24 * 3600)
-            hour = seconds // 3600
-            seconds %= 3600
-            minutes = seconds // 60
-            seconds %= 60
-            trialRunTime = "(+%d:%02d:%02d)" % (hour, minutes, seconds)
-            trialStartTime = time.time()
-            print('Run Time: ' + runTime + " " + trialRunTime + "\n")
+            except:
+                pass
 
         print("Consolidating Data from Trials where ANNs have " + str(nodeNumber) + " hidden layer nodes...")
         plot_consolidated_data_number_of_nodes_experiment(nodeNumber,metrics=args.metrics)
+
+        totalTimer.end_trial(0)
+        print(f'Run Time for {numberOfTrials} trials for {nodeNumber} hidden layer nodes: {totalTimer.trialRunTimeStr}')
+
+    print(f'All trials completed! Total Experiment Run Time: {totalTimer.totalRunTimeStr}')
 
     pathName = (
         'experimental_trials/'
@@ -207,40 +233,71 @@ if __name__=='__main__':
         + '{:03d}'.format(int(args.dur)) + 's'
         + '/'
     )
+
     print("Plotting all data!")
     for metric in metrics:
         plot_number_of_nodes_vs_average_performance(metric)
+        plot_number_of_nodes_vs_average_performance(metric,includeSTD=True)
+        plot_number_of_nodes_vs_average_performance(metric,yscale='log')
+        plot_number_of_nodes_vs_performance_STD(metric)
+        plot_number_of_nodes_vs_performance_STD(metric,yscale='log')
         save_figures(
             pathName,
-            "perf_v_bab_dur_"+metric,
-            {"Number of Trials":args.trials},
+            "perf_v_node_no_"+metric,
+            {"Number of Trials":args.trials,"Babbling Durations":args.dur,"Number of Nodes List":numberOfNodesList,"metrics":args.metrics,"Babbling Type":args.babType},
             subFolderName=folderName,
-            saveAsPDF=True
+            saveAsPDF=True,
+            saveAsMD=True,
+            addNotes="Seeing how the number of nodes affects performance *on the same babbling data* (15.0s at 1kHz). The seed for the motor babbling has been fixed to 0 such that the neural networks will have the same information. Each iteration, the weights of the ANN will be randomized (no longer using MATLAB's initialization function `initnw`, which optimizes the initial weights for better performance). This will hopefully elucidate the affect that number of hidden nodes has on the performance of this algorithm. \n### Next Step\n Run with *random* babbling trials to see how this performs on average when weights and babbling are random."
         )
         plt.close('all')
 
-    runTime = time.time()-totalStartTime
-    seconds = runTime % (24 * 3600)
-    hour = seconds // 3600
-    seconds %= 3600
-    minutes = seconds // 60
-    seconds %= 60
-    runTime = "%d:%02d:%02d" % (hour, minutes, seconds)
+    trialDirectories = [
+        child for child in Path(pathName).iterdir()
+        if child.is_dir() and child.stem[:12]=="Consolidated"
+    ]
+    for folder in trialDirectories:
+        shutil.copytree(str(folder), pathName+folderName+"/"+folder.name)
+        shutil.rmtree(str(folder))
+
+    totalTimer.end_trial()
 
     if path.exists("slack_functions.py"):
-        from slack_functions import *
         message = (
             '\n'
-            + 'Total Run Time: ' + runTime + '\n\n'
+            + '_Test Trial Finished!!!_ \n\n'
+            + 'Note that this was using frequencies of 1 Hz for all desired movements.\n\n'
+            + 'Total Run Time: ' + totalTimer.totalRunTimeStr + '\n\n'
             + '```params = {\n'
             + '\t"Number of Trials" : ' + str(args.trials) + ',\n'
             + '\t"Babbling Duration" : ' + str(args.dur) + ', # in seconds\n'
             + '\t"Babbling Type" : "' + args.babType + '"\n'
             + '}```'
         )
-        progress_report_to_slack(
-            __file__,
-            message
-        )
-
-    print("Total Run Time: " + runTime)
+        HAL.add_report_to_github_io(pathName+folderName+"README.md")
+        HAL.slack_post_message_code_completed(message)
+    # runTime = time.time()-totalStartTime
+    # seconds = runTime % (24 * 3600)
+    # hour = seconds // 3600
+    # seconds %= 3600
+    # minutes = seconds // 60
+    # seconds %= 60
+    # runTime = "%d:%02d:%02d" % (hour, minutes, seconds)
+    #
+    # if path.exists("slack_functions.py"):
+    #     from slack_functions import *
+    #     message = (
+    #         '\n'
+    #         + 'Total Run Time: ' + runTime + '\n\n'
+    #         + '```params = {\n'
+    #         + '\t"Number of Trials" : ' + str(args.trials) + ',\n'
+    #         + '\t"Babbling Duration" : ' + str(args.dur) + ', # in seconds\n'
+    #         + '\t"Babbling Type" : "' + args.babType + '"\n'
+    #         + '}```'
+    #     )
+    #     progress_report_to_slack(
+    #         __file__,
+    #         message
+    #     )
+    #
+    # print("Total Run Time: " + runTime)

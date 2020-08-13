@@ -25,7 +25,7 @@ params = {
 
 #### Sinusoidal Joint Angle / Sinusoidal Joint Stiffness
 <p align="center">
-	<img width=1000 src="Generalization_Trajectories/angleSin_stiffSin/lower_stiffness_01-01.png"></br>
+	<img width=500 src="Generalization_Trajectories/angleSin_stiffSin/lower_stiffness_01-01.png"></br>
 	<small>Figure 1: Sinusoidal joint angle (1 Hz) and sinusoidal joint stiffness (2 Hz, phase-locked) task.</small>
 </p>
 </br>
@@ -33,7 +33,7 @@ params = {
 
 #### Sinusoidal Joint Angle / Point-to-Point Joint Stiffness
 <p align="center">
-	<img width=1000 src="Generalization_Trajectories/angleSin_stiffStep/C4_diff_reference_trajectories_01-01.png"></br>
+	<img width=500 src="Generalization_Trajectories/angleSin_stiffStep/C4_diff_reference_trajectories_01-01.png"></br>
 	<small>Figure 2: Sinusoidal joint angle (1 Hz) and point-to-point joint stiffness (3s step duration, 100 steps) task.</small>
 </p>
 </br>
@@ -41,7 +41,7 @@ params = {
 
 #### Point-to-Point Joint Angle / Sinusoidal Joint Stiffness
 <p align="center">
-	<img width=1000 src="Generalization_Trajectories/angleStep_stiffSin/C4_diff_reference_trajectories_01-01.png"></br>
+	<img width=500 src="Generalization_Trajectories/angleStep_stiffSin/C4_diff_reference_trajectories_01-01.png"></br>
 	<small>Figure 3: Point-to-point joint angle (3s step duration, 100 steps) and sinusoidal joint stiffness (1 Hz) task.</small>
 </p>
 </br>
@@ -49,7 +49,7 @@ params = {
 
 #### Point-to-Point Joint Angle / Point-to-Point Joint Stiffness
 <p align="center">
-	<img width=1000 src="Generalization_Trajectories/angleStep_stiffStep/C4_diff_reference_trajectories_01-01.png"></br>
+	<img width=500 src="Generalization_Trajectories/angleStep_stiffStep/C4_diff_reference_trajectories_01-01.png"></br>
 	<small>Figure 4: Point-to-point joint angle and point-to-point joint stiffness task (1s step duration, 200 steps).</small>
 </p>
 </br>

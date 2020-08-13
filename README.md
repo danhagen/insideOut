@@ -1,4 +1,11 @@
-# _insideOut_ 
+<p align="center">
+  <h1><em>insideOut</em></h1>
+</p> 
+
+<p align="center">
+  <img width="1000" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/insideOut_comic_graphic.png?raw=true" alt="insideOut: A Bio-Inspired Machine Learning Approach to Estimating Posture in Robots Driven by Compliant Tendons">
+</p>
+
 ## A Bio-Inspired Machine Learning Approach to Estimating Posture in Robots Driven by Compliant Tendons
 ### Daniel A. Hagen, Ali Marjaninejad, Gerald E. Loeb & Francisco J. Valero-Cuevas
 
@@ -27,7 +34,7 @@ The default `run plant.py` command will test the feedback linearization algorith
 
 
 ## Generating Babbling Data
-In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA` which generates low frequency, band-limited white noise signals (&#8804; 10 Hz) for each motor input where the inputs have a high degree of temporal correlation (emulating physiological co-contraction). The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures can be saved as either PNG or PDF (`--savefigs` and `savefigsPDF`, respectively) in a time-stamped folder. You also have the option to animate the babbling data (`--animate`). 
+In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA` which generates low frequency, band-limited white noise signals (&#8804; 10 Hz) for each motor input where the inputs have a high degree of temporal correlation (emulating physiological co-contraction). The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures can be saved as either PNG or PDF (`--savefigs` and `--savefigsPDF`, respectively) in a time-stamped folder. You also have the option to animate the babbling data (`--animate`). 
 
 <p align="center">
   <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/babblingInputs.png?raw=true">
@@ -38,13 +45,13 @@ In order to generate motor babbling data, we use the class `motor_babbling_1DOF2
 To build, train, and test these ANNs, use `build_NN_1DOF2DOA` and `test_NN_1DOF2DOA`.
 
 ## Run Multiple Trials and Plot All Data
-To run the entire experiment, run `run run_multiple_trials_with_different_babbling_durations.py`. This will sweep across babbling durations from 1-30 seconds, train multiple ANNs (*default*:50 trials), and plot average performances. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
+To sweep babbling durations, run `run run_multiple_trials_with_different_babbling_durations.py`. The number of hidden-layer nodes (*default* is 15) can be changed with option `-nodes`. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
+
+Conversely, to sweep hidden-layer nodes, run `run run_multiple_trials_with_different_hidden_layer_nodes.py`. The number of hidden-layer nodes (*default* is 15) can be changed with option `-nodes`. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
+
+Parameter sensitivity can be performed for movement frequency (`run run_frequency_sweep.py`) or for changes to tendon stiffness/motor damping (`run run_plant_parameter_sweep.py`). To observe the effect of assuming very high tendon stiffness use the function `run run_high_stiffness_experiment.py`.
 
 ## Animate a Single Trial (All 4 ANNs Over 4 Different Movements)
 To visualize the performance of ANNs and their ability to generalize to other movement tasks, use the function `animate_sample_trials.py`. This will create an animation of how well each ANN did at predicting joint angle and will sweep across 4 different movements (joint angle and stiffness are either sinusoidal or point-to-point). 
 
-
-  
- <a href="https://youtu.be/w0AV4tzIW98"><img src="https://user-images.githubusercontent.com/16945786/75698768-24aca280-5c64-11ea-8b74-4999e1bd62b5.gif" alt="Youtube Video Link"></a>
-</p>
 

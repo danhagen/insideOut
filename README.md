@@ -22,7 +22,8 @@ Please note that you can find help for many of the python functions in this repo
 ## The Plant 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true"></br>
+  <small>Fig. 1: Schematic of a tendon-driven system with 1 kinematic DOF and 2 degrees of actuation (motors) that pull on tendons with nonlinear elasticity (creating a tension, <em>f<sub>T,i</sub></em>). The motors were assumed to be backdrivable with torques (<em>&tau;<sub>i</sub></em>) as inputs.</small>
 </p>
 
 Here we used a physical inverted pendulum that was controlled by two simulated brushed DC motors (i.e., backdriveable) that pulled on tendons with nonlinear (exponential) stiffness. This plant can either be given feedfoward inputs or controlled via a *feedback linearization controller* that takes advantage of the fact that joint stiffness and joint angle can be controlled independently. Simply prescribe trajectories for both output measures and the controller will track it.
@@ -34,10 +35,12 @@ The default `run plant.py` command will test the feedback linearization algorith
 In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA` which generates low frequency, band-limited white noise signals (&#8804; 10 Hz) for each motor input where the inputs have a high degree of temporal correlation (emulating physiological co-contraction). The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures can be saved as either PNG or PDF (`--savefigs` and `--savefigsPDF`, respectively) in a time-stamped folder. You also have the option to animate the babbling data (`--animate`). 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/babblingInputs.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/babblingInputs.png?raw=true"></br>
+  <small>Fig.2: Sample low frequency, band-limited white noise motor babbling signals.</small>
 </p>
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true"></br>
+  <small>Fig. 3: Resulting pendulum angle/angular velocity, motor rotations/angular velocities, and tendon tensions for a motor babbling trial.</small>
 </p>
 
 ## Train Articifical Neural Networks

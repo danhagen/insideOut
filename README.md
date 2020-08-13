@@ -8,7 +8,7 @@
 
 Estimates of limb posture are critical to control robotic systems. This is generally accomplished with angle sensors at individual joints that simplify control but can complicate mechanical design and robustness. Limb posture should be derivable from each joint’s actuator shaft angle but this is problematic for compliant tendon-driven systems where (_i_) motors are not placed at the joints and (_ii_) nonlinear tendon stiffness decouples the relationship between motor and joint angles. Here we propose a novel machine learning algorithm to accurately estimate joint posture during dynamic tasks by limited training of an artificial neural network (ANN) receiving motor angles _and_ tendon tensions, analogous to biological muscle and tendon mechanoreceptors. Simulating an inverted pendulum—antagonistically-driven by motors and nonlinearly-elastic tendons—we compare how accurately ANNs estimate joint angles when trained with different sets of non-collocated sensory information generated via random motor-babbling. Cross-validating with new movements, we find that ANNs trained with motor _and_ tendon tension data predict joint angles more accurately than ANNs trained without tendon tension. Furthermore, these results are robust to changes in network/mechanical hyper-parameters. We conclude that regardless of the tendon properties, actuator behavior, or movement demands, tendon tension information invariably improves joint angle estimates from non-collocated sensory signals.
 
-## Installation from GitHub
+<h2 align="center">Installation from GitHub</h2>
 Please follow the instructions <a href='https://www.mathworks.com/help/matlab/matlab_external/install-the-matlab-engine-for-python.html'>here</a> in order to install MATLAB engine API for python. Once that is done, you can clone into this repository and install the remaining required packages by copy and pasting the following code into the terminal.
 
 ```bash
@@ -19,7 +19,7 @@ pip install .
 
 Please note that you can find help for many of the python functions in this repository by using the command `run <func_name> -h`.
 
-## The Plant 
+<h2 align="center">The Plant</h2> 
 
 <p align="center">
   <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true"></br>
@@ -31,7 +31,7 @@ Here we used a physical inverted pendulum that was controlled by two simulated b
 The default `run plant.py` command will test the feedback linearization algorithm. Choosing the options `--saveFigures` will save the figures and `--animate` will animate the output.
 
 
-## Generating Babbling Data
+<h2 align="center">Generating Babbling Data</h2>
 In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA` which generates low frequency, band-limited white noise signals (&#8804; 10 Hz) for each motor input where the inputs have a high degree of temporal correlation (emulating physiological co-contraction). The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures can be saved as either PNG or PDF (`--savefigs` and `--savefigsPDF`, respectively) in a time-stamped folder. You also have the option to animate the babbling data (`--animate`). 
 
 <p align="center">
@@ -43,17 +43,17 @@ In order to generate motor babbling data, we use the class `motor_babbling_1DOF2
   <small>Fig. 3: Resulting pendulum angle/angular velocity, motor rotations/angular velocities, and tendon tensions for a motor babbling trial.</small>
 </p>
 
-## Train Articifical Neural Networks
+<h2 align="center">Train Articifical Neural Networks</h2>
 To build, train, and test these ANNs, use `build_NN_1DOF2DOA` and `test_NN_1DOF2DOA`.
 
-## Run Multiple Trials and Plot All Data
+<h2 align="center">Run Multiple Trials and Plot All Data</h2>
 To sweep babbling durations, run `run run_multiple_trials_with_different_babbling_durations.py`. The number of hidden-layer nodes (*default* is 15) can be changed with option `-nodes`. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
 
 Conversely, to sweep hidden-layer nodes, run `run run_multiple_trials_with_different_hidden_layer_nodes.py`. The duration of motor babbling (*default* is 15s) can be changed with option `-dur`. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
 
 Parameter sensitivity can be performed for movement frequency (`run run_frequency_sweep.py`) or for changes to tendon stiffness/motor damping (`run run_plant_parameter_sweep.py`). To observe the effect of assuming very high tendon stiffness use the function `run run_high_stiffness_experiment.py`. These experiments assume 15 seconds of motor babbling and 15 hidden-layer nodes, but those values can be changed for any function by the aforementioned options.
 
-## Animate a Single Trial (All 4 ANNs Over 4 Different Movements)
+<h2 align="center">Animate a Single Trial (All 4 ANNs Over 4 Different Movements)</h2>
 To visualize the performance of ANNs and their ability to generalize to other movement tasks, use the function `animate_sample_trials.py`. This will create an animation of how well each ANN did at predicting joint angle and will sweep across 4 different movements (joint angle and stiffness are either sinusoidal or point-to-point). 
 
 

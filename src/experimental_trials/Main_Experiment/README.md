@@ -1,3 +1,5 @@
+<a href="https://github.com/danhagen/insideOut">Return to Main Screen</a>
+
 
 # (MAIN EXPERIMENT)
 # Experiments to Test How Well ANNs Perform When the Duration of Motor Babbling or Number of Hidden-Layer Nodes are Varied

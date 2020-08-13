@@ -1,3 +1,4 @@
+<a href="https://github.com/danhagen/insideOut">Return to Main Screen</a>
 
 # Experiment to Test How Well ANNs Perform When Movement Frequency is Changed
 

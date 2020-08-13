@@ -1,13 +1,12 @@
-<p align="center">
-  <h1><em>insideOut</em></h1>
-</p> 
+<h1 align="center"><em>insideOut</em></h1>
 
 <p align="center">
   <img width="1000" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/insideOut_comic_graphic.png?raw=true" alt="insideOut: A Bio-Inspired Machine Learning Approach to Estimating Posture in Robots Driven by Compliant Tendons">
 </p>
 
-## A Bio-Inspired Machine Learning Approach to Estimating Posture in Robots Driven by Compliant Tendons
-### Daniel A. Hagen, Ali Marjaninejad, Gerald E. Loeb & Francisco J. Valero-Cuevas
+<h2 align="center">A Bio-Inspired Machine Learning Approach</h2>
+<h2 align="center">to Estimating Posture in Robots Driven by Compliant Tendons</h2>
+<h3 align="center">Daniel A. Hagen, Ali Marjaninejad, Gerald E. Loeb & Francisco J. Valero-Cuevas</h3>
 
 Estimates of limb posture are critical to control robotic systems. This is generally accomplished with angle sensors at individual joints that simplify control but can complicate mechanical design and robustness. Limb posture should be derivable from each joint’s actuator shaft angle but this is problematic for compliant tendon-driven systems where (_i_) motors are not placed at the joints and (_ii_) nonlinear tendon stiffness decouples the relationship between motor and joint angles. Here we propose a novel machine learning algorithm to accurately estimate joint posture during dynamic tasks by limited training of an artificial neural network (ANN) receiving motor angles _and_ tendon tensions, analogous to biological muscle and tendon mechanoreceptors. Simulating an inverted pendulum—antagonistically-driven by motors and nonlinearly-elastic tendons—we compare how accurately ANNs estimate joint angles when trained with different sets of non-collocated sensory information generated via random motor-babbling. Cross-validating with new movements, we find that ANNs trained with motor _and_ tendon tension data predict joint angles more accurately than ANNs trained without tendon tension. Furthermore, these results are robust to changes in network/mechanical hyper-parameters. We conclude that regardless of the tendon properties, actuator behavior, or movement demands, tendon tension information invariably improves joint angle estimates from non-collocated sensory signals.
 
@@ -38,6 +37,8 @@ In order to generate motor babbling data, we use the class `motor_babbling_1DOF2
 
 <p align="center">
   <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/babblingInputs.png?raw=true">
+</p>
+<p align="center">
   <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true">
 </p>
 

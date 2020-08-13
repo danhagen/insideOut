@@ -1,9 +1,8 @@
-<h1 align="center"><em>insideOut</em></h1>
-
 <p align="center">
-  <img width="1000" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/insideOut_comic_graphic.png?raw=true" alt="insideOut: A Bio-Inspired Machine Learning Approach to Estimating Posture in Robots Driven by Compliant Tendons">
+  <img width="1000" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/insideOut_comic_graphic.png?raw=true" alt="insideOut: A Bio-Inspired Machine Learning Approach to Estimating Posture in Robots Driven by Compliant Tendons">
 </p>
 
+<h1 align="center"><em>insideOut</em></h1>
 <h2 align="center">A Bio-Inspired Machine Learning Approach</br>to Estimating Posture in Robots Driven by Compliant Tendons</h2>
 <h3 align="center">Daniel A. Hagen, Ali Marjaninejad, Gerald E. Loeb & Francisco J. Valero-Cuevas</h3>
 
@@ -23,7 +22,7 @@ Please note that you can find help for many of the python functions in this repo
 ## The Plant 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Schematic_1DOF2DOA_system.png?raw=true">
 </p>
 
 Here we used a physical inverted pendulum that was controlled by two simulated brushed DC motors (i.e., backdriveable) that pulled on tendons with nonlinear (exponential) stiffness. This plant can either be given feedfoward inputs or controlled via a *feedback linearization controller* that takes advantage of the fact that joint stiffness and joint angle can be controlled independently. Simply prescribe trajectories for both output measures and the controller will track it.
@@ -35,10 +34,10 @@ The default `run plant.py` command will test the feedback linearization algorith
 In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA` which generates low frequency, band-limited white noise signals (&#8804; 10 Hz) for each motor input where the inputs have a high degree of temporal correlation (emulating physiological co-contraction). The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures can be saved as either PNG or PDF (`--savefigs` and `--savefigsPDF`, respectively) in a time-stamped folder. You also have the option to animate the babbling data (`--animate`). 
 
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/babblingInputs.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/babblingInputs.png?raw=true">
 </p>
 <p align="center">
-  <img width="500" src="https://github.com/danhagen/iO-IROS-2020/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true">
+  <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true">
 </p>
 
 ## Train Articifical Neural Networks

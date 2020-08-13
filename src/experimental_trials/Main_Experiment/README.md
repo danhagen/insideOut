@@ -1,4 +1,4 @@
-<a href="https://github.com/danhagen/insideOut#main_ex">Return to Main Screen</a>
+<a href="https://github.com/danhagen/insideOut#main_ex" id="top_return_link">Return to Main Screen</a>
 
 
 # (MAIN EXPERIMENT)

@@ -55,13 +55,13 @@ To sweep babbling durations, run `run run_multiple_trials_with_different_babblin
 
 Conversely, to sweep hidden-layer nodes, run `run run_multiple_trials_with_different_hidden_layer_nodes.py`. The duration of motor babbling (*default* is 15s) can be changed with option `-dur`. You can choose to plot metrics such as mean absolute error (MAE), root mean squared error (RMSE), or standard deviation of the error (STD) by adding the additional arguments `-metrics [METRICS ...]`. 
 
-Jump to: <a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/Main_Experiment/README.md" id="main_ex">Main Experiment Results</a>
+Jump to: <a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/Main_Experiment/README.md#top_return_link" id="main_ex">Main Experiment Results</a>
 
 Parameter sensitivity can be performed for movement frequency (`run run_frequency_sweep.py`) or for changes to tendon stiffness/motor damping (`run run_plant_parameter_sweep.py`). To observe the effect of assuming very high tendon stiffness use the function `run run_high_stiffness_experiment.py`. These experiments assume 15 seconds of motor babbling and 15 hidden-layer nodes, but those values can be changed for any function by the aforementioned options.
 
-Jump to: <a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/Sweep_Frequency/README.md" id="freq_sweep">Frequency Sweep Results</a>,
-<a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/Sweep_Plant/README.md" id="plant_sweep">Plant Parameter Sweep Results</a>, or
-<a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/High_Stiffness_Experiment/README.md" id="high_stiff">High Stiffness Experiment Results</a>
+Jump to: <a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/Sweep_Frequency/README.md#top_return_link" id="freq_sweep">Frequency Sweep Results</a>,
+<a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/Sweep_Plant/README.md#top_return_link" id="plant_sweep">Plant Parameter Sweep Results</a>, or
+<a href="https://github.com/danhagen/insideOut/blob/master/src/experimental_trials/High_Stiffness_Experiment/README.md#top_return_link" id="high_stiff">High Stiffness Experiment Results</a>
 
 <h2 align="center">Animate a Single Trial (All 4 ANNs Over 4 Different Movements)</h2>
 

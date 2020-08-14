@@ -29,9 +29,13 @@ class animate_pendulum_babbling:
         self.rm = 4.763
         self.Lsp_Total = 29.033699471476247
 
+        self.downsamplingFactor = downsamplingFactor
         self.X = X[:,::downsamplingFactor]
+        self.X_raw = X
         self.U = U[:,::downsamplingFactor]
+        self.U_raw = U
         self.Time = Time - Time[0]
+        self.Time_raw = self.Time
         self.endTime = self.Time[-1]
         self.Time = self.Time[::downsamplingFactor]
         inputBounds = plantParams.get("Input Bounds",[0,10])
@@ -432,7 +436,7 @@ class animate_pendulum_babbling:
             self.ax1.set_ylim([min(self.U[:,0]) - 5,max(self.U[:,0]) + 5])
         else:
             self.RangeU = inputMaximum-inputMinimum
-            self.ax1.set_ylim([self.U.min()-0.1*self.RangeU,self.U.max()+0.1*self.RangeU])
+            self.ax1.set_ylim([inputMinimum-0.1*self.RangeU,inputMaximum+0.1*self.RangeU])
         #
         self.ax1.spines['right'].set_visible(False)
         self.ax1.spines['top'].set_visible(False)
@@ -461,7 +465,7 @@ class animate_pendulum_babbling:
             self.ax2.set_ylim([min(self.U[:,0]) - 5,max(self.U[:,0]) + 5])
         else:
             self.RangeU = inputMaximum-inputMinimum
-            self.ax2.set_ylim([self.U.min()-0.1*self.RangeU,self.U.max()+0.1*self.RangeU])
+            self.ax2.set_ylim([inputMinimum-0.1*self.RangeU,inputMaximum+0.1*self.RangeU])
         #
         self.ax2.spines['right'].set_visible(False)
         self.ax2.spines['top'].set_visible(False)
@@ -469,6 +473,7 @@ class animate_pendulum_babbling:
 
         #pendulum angle
         self.x1d = self.X[0,:]*180/np.pi
+        self.x1d_raw = self.X_raw[0,:]*180/np.pi
         self.ax3.plot([0,self.endTime],[90,90],"0.70",linestyle='--')
         self.ax3.plot([0,self.endTime],[270,270],"0.70",linestyle='--')
         self.ax3.text(
@@ -634,14 +639,14 @@ class animate_pendulum_babbling:
 
         self.timeStamp.set_text("Time: "+"{:.2f}".format(self.Time[i])+" s",)
 
-        self.input1.set_xdata(self.Time[:i])
-        self.input1.set_ydata(self.U[0,:i])
+        self.input1.set_xdata(self.Time_raw[:int(i*self.downsamplingFactor)])
+        self.input1.set_ydata(self.U_raw[0,:int(i*self.downsamplingFactor)])
 
-        self.input2.set_xdata(self.Time[:i])
-        self.input2.set_ydata(self.U[1,:i])
+        self.input2.set_xdata(self.Time_raw[:int(i*self.downsamplingFactor)])
+        self.input2.set_ydata(self.U_raw[1,:int(i*self.downsamplingFactor)])
 
-        self.angle.set_xdata(self.Time[:i])
-        self.angle.set_ydata(self.x1d[:i])
+        self.angle.set_xdata(self.Time_raw[:int(i*self.downsamplingFactor)])
+        self.angle.set_ydata(self.x1d_raw[:int(i*self.downsamplingFactor)])
 
         return self.pendulum,self.spring1,self.spring2,self.inputIndicator1,self.inputIndicator1Arrow,self.inputIndicator2,self.inputIndicator2Arrow,self.input1,self.input2,self.angle,self.timeStamp,
 

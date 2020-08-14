@@ -37,12 +37,16 @@ The default `run plant.py` command will test the feedback linearization algorith
 In order to generate motor babbling data, we use the class `motor_babbling_1DOF2DOA` which generates low frequency, band-limited white noise signals (&#8804; 10 Hz) for each motor input where the inputs have a high degree of temporal correlation (emulating physiological co-contraction). The default `run motor_babbling_1DOF2DOA.py` will produce plots of random motor babbling and the resulting states of the plant. Figures can be saved as either PNG or PDF (`--savefigs` and `--savefigsPDF`, respectively) in a time-stamped folder. You also have the option to animate the babbling data (`--animate`). 
 
 <p align="center">
+  <img src="https://raw.githubusercontent.com/danhagen/insideOut/master/SupplementaryVideos/babbling_example.gif" alt="Babbling Example GIF">
+  <small>Fig. 2: Sample animation of low frequency, band-limited white noise motor babbling signals.</small>
+</p>
+<p align="center">
   <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/babblingInputs.png?raw=true"></br>
-  <small>Fig.2: Sample low frequency, band-limited white noise motor babbling signals.</small>
+  <small>Fig. 3: Plots of sample low frequency, band-limited white noise motor babbling signals.</small>
 </p>
 <p align="center">
   <img width="500" src="https://github.com/danhagen/insideOut/blob/master/SupplementaryFigures/Plant_States_vs_Time_from_Babbling.png?raw=true"></br>
-  <small>Fig. 3: Resulting pendulum angle/angular velocity, motor rotations/angular velocities, and tendon tensions for a motor babbling trial.</small>
+  <small>Fig. 4: Resulting pendulum angle/angular velocity, motor rotations/angular velocities, and tendon tensions for a motor babbling trial.</small>
 </p>
 
 <h2 align="center">Train Articifical Neural Networks</h2>
